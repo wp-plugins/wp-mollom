@@ -18,7 +18,7 @@ your blog spamfree.
 
 screenshot-1.png
 
-Mollom combines the power of intelligent text analysis to automatically filter spam with the efficienty of a safe
+Mollom combines the power of intelligent text analysis to automatically filter spam with the efficiency of a safe
 CAPTCHA test. If Mollom is unsure if a comment is spam or not, it will present the visitor with a CAPTCHA test.
 Unless the test was completed succesfully, the comment will never be stored on your blog. Fallback on an automated
 CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
