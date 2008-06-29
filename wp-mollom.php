@@ -105,7 +105,7 @@ function mollom_activate() {
 			if($stat) {
 				$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
 			} else {
-				wp_die(__('Something went wrong while moving data from comments to the new mollom data table'));
+				wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
 			}
 			// end of legacy code
 		}
@@ -315,12 +315,12 @@ function mollom_config() {
 		$ms[] = 'correctkey';
 	}
 		
-	$messages = array('privatekeyempty' => array('color' => 'aa0', 'text' => __('your private key is empty')),
-				'publickeyempty' => array('color' => 'aa0', 'text' => __('your public key is empty')),
-				'wrongkey' => array('color' => 'd22', 'text' => __('The key you provided is wrong')),
+	$messages = array('privatekeyempty' => array('color' => 'aa0', 'text' => __('Your private key is empty.')),
+				'publickeyempty' => array('color' => 'aa0', 'text' => __('Your public key is empty.')),
+				'wrongkey' => array('color' => 'd22', 'text' => __('The key you provided is wrong.')),
 				'mollomerror' => array('color' => 'd22', 'text' => __('Mollom error: ' . $errormsg)),
 				'networkerror' => array('color' =>'d22', 'text' => __('Network error: ' . $errormsg)),
-				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid'))); 		
+				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.'))); 		
 	?>	
 <div class="wrap">
 <h2>Mollom Configuration</h2>
@@ -341,7 +341,7 @@ function mollom_config() {
 		mollom_nonce_field($mollom_nonce);
 	?>
 	<p><?php _e('<a href=\"http://mollom.com\" title=\"Mollom\">Mollom</a> is a web service that helps you identify content quality and, more importantly,
-	helps you stop comment and contact form spam. When moderation becomes easier, you have
+	helps you stop comment and contact form spam. When moderation becomes easier, you can spend
 	more time and energy to interact with your web community.'); ?></p>	
 	<p><?php _e('<a href="http://mollom.com/user/register">Register</a> with Mollom to get your keys.'); ?></p>
 	<?php if(!empty($ms)) {
@@ -574,7 +574,7 @@ function checkAll(form) {
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
-<p><?php _e('So far, Mollom has stopped '); echo _mollom_get_plugincount(); _e(' spams on your blog.'); ?></p>
+<p><?php _e('So far, Mollom has stopped '); echo _mollom_get_plugincount(); _e(' spam messages on your blog.'); ?></p>
 <?php if(!empty($ms)) { foreach ( $ms as $m ) : ?>
 <p style="padding: .5em; background-color: #<?php echo $messages[$m]['color']; ?>; color: #fff; font-weight: bold;"><?php echo $messages[$m]['text']; ?></p>
 <?php endforeach; } ?>
@@ -711,7 +711,7 @@ function mollom_check_comment($comment) {
 		elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 			// kill the process here because of spam detection
 			_mollom_set_plugincount();
-			wp_die(__('your comment has been marked as spam or unwanted by Mollom. Therefore it could not be accepted.'));
+			wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.'));
 		}
 	
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {

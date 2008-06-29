@@ -9,12 +9,14 @@ Stable tag: 0.5.0
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
-== Description ===
+== Description ==
 
 <a href="http://www.mollom.com">Mollom</a> protects your website against comment and trackback spam. The difference
 with other spam services is that Mollom takes care of everything. The idea is to relieve you, the administrator, 
 editor, maintainer,... of whatever moderation or clean up tasks you would normally need to perform in order to keep 
 your blog spamfree.
+
+screenshot-1.png
 
 Mollom combines the power of intelligent text analysis to automatically filter spam with the efficienty of a safe
 CAPTCHA test. If Mollom is unsure if a comment is spam or not, it will present the visitor with a CAPTCHA test.
@@ -27,7 +29,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
 * Enter the public/private key combination you got after registering with Mollom.
-  with the Mollom service. You can can create an account and register your website at http://www.mollom.com.
+  with the Mollom service. You can can create an account and register your website at http://www.mollom.com
 * All comments posted to your blogs should now go through the Mollom service.
 
 == Usage ==
@@ -41,7 +43,7 @@ Wordpress administration board, a new Mollom option will be shown. Through this 
 moderation tool. The default Wordpress moderation queue is still available, but usage of the Mollom moderation queue
 is encouraged.
 
-You can also this code: `<?php mollom_moderate_comment($Comment->Comment_ID); ?>` into the comments.php template of
+You can also this code: `<?php mollom_moderate_comment($comment->Comment_ID); ?>` into the comments.php template of
 your theme. Make sure the code is placed well within the comment loop! This code allows you to moderate comments directly
 of your theme.
 
@@ -71,38 +73,47 @@ Extra options in the configuration panel:
   will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up 
   in the mollom moderation queue.
 
+== Screenshots ==
+
+1. The CAPTCHA presented to a visitor if Mollom was unsure about his/her comment being spam or not.
+screenshot-2.png
+2. The moderation queue in the administration interface of Wordpress
+screenshot-3.png
+3. The configuration panel in the administration interface of Wordpress
+screenshot-4.png
+4. The moderation options integrated in the default Kubrick theme of Wordpress
+screenshot-5.png
+
 == Changelog ==
 
-2008/06/26		0.5.0	Added: installation/activation can contain legacy code and versioning for handling 
-				old (test)configurations
-				Added: PHPDoc style documentation of functions
-				Added: mollom_moderate_comment() template function. Allows moderation from your 
-					theme.
-				Removed: 'moderation mode'. Moderation should only be configured through the proper 
-					wordpress interface.
-				fixed: compatibility issues with the WP-OpenID plugin
-				Improved: the plugin relies far less on global variables now.
-				Improved: all mollom data is now saved to it's own seprerate, independent table.
-				Improved: SQL revision
-				Improved: error handling is now more verbose
-				Improved: status messages in the configuration/moderation panels now only show when 
-					relevant 
-				Improved: handling of mollom servers not being available or unreachable
-2008/06/03		0.4	Changed: 'configuration' now is under WP 'settings' menu instead of 'plugins'
-				Added: show_mollom_plugincount() as a template function to show off your mollom 
-					caught
-2008/05/27		0.3	Added: trackback support. If ham: passed. If unsure/spam: blocked.
-				Added: 'moderation mode' mollom approved comments/trackbacks still need to be moderated
-				Added: 'Restore' When the plugin is deactivated, optionally purge all mollom related data
-				Changed: moderation isn't mandatory anymore, only optional. Comments aren't saved to the 
-					database until the CAPTCHA is filled out correctly. Otherwise: never registered.
-				Improved: Error handling now relies on WP Error handling (WP_Error object)
-2008/05/22		0.2	Added: bulk moderation of comments
-				Added: 'policy mode' disables commenting if the Mollom service is down
-				Improved: moderation interface is more userfriendly
-				Improved: only unmoderated messages with a mollom session id can be moderated
-				Improved: deactivation restores database to previous state. Removal of stored option
-					  values and deletion of the mollom_session_id column in $prefix_comments
-				Fixed: persistent storage of the mollom session id in the database
-				Fixed: no messages shown in the configuration screen triggers a PHP error
-2008/05/12		0.1	Initial release to testers
+* 2008/06/26 - 0.5.0
+ * Added: installation/activation can contain legacy code and versioning for handling old (test)configurations
+ * Added: PHPDoc style documentation of functions
+ * Added: mollom_moderate_comment() template function. Allows moderation from your theme.
+ * Removed: 'moderation mode'. Moderation should only be configured through the proper wordpress interface.
+ * fixed: compatibility issues with the WP-OpenID plugin
+ * Improved: the plugin relies far less on global variables now.
+ * Improved: all mollom data is now saved to it's own seprerate, independent table.
+ *¨Improved: SQL revision
+ * Improved: error handling is now more verbose
+ * Improved: status messages in the configuration/moderation panels now only show when relevant 
+ * Improved: handling of mollom servers not being available or unreachable
+* 2008/06/03 - 0.4
+ * Changed: 'configuration' now is under WP 'settings' menu instead of 'plugins'
+ * Added: show_mollom_plugincount() as a template function to show off your mollom caught
+* 2008/05/27 - 0.3
+ * Added: trackback support. If ham: passed. If unsure/spam: blocked.
+ * Added: 'moderation mode' mollom approved comments/trackbacks still need to be moderated
+ * Added: 'Restore' When the plugin is deactivated, optionally purge all mollom related data
+ * Changed: moderation isn't mandatory anymore, only optional. Comments aren't saved to the  database until the CAPTCHA is filled out correctly. Otherwise: never registered.
+ * Improved: Error handling now relies on WP Error handling (WP_Error object)
+* 2008/05/22 - 0.2
+ * Added: bulk moderation of comments
+ * Added: 'policy mode' disables commenting if the Mollom service is down
+ * Improved: moderation interface is more userfriendly
+ * Improved: only unmoderated messages with a mollom session id can be moderated
+ * Improved: deactivation restores database to previous state. Removal of stored option values and deletion of the mollom_session_id column in $prefix_comments
+ * Fixed: persistent storage of the mollom session id in the database
+ * Fixed: no messages shown in the configuration screen triggers a PHP error
+* 2008/05/12 - 0.1
+ * Initial release to testers
