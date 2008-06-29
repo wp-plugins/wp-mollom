@@ -355,7 +355,7 @@ function mollom_config() {
 	<h3><label><?php _e('Policy mode'); ?></label></h3>
 	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
 	<h3><label><?php _e('Restore'); ?></label></h3>
-	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Restore the database (purge all mollom data) upon deactivation of the plugin.'); ?></p>
+	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
 
 	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
 </form>
