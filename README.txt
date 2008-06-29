@@ -73,16 +73,16 @@ Extra options in the configuration panel:
 
 == Screenshots ==
 
-1. The CAPTCHA presented to a visitor if Mollom was unsure about his/her comment being spam or not.
+The CAPTCHA presented to a visitor if Mollom was unsure about his/her comment being spam or not.
+screenshot-1.png
+The moderation queue in the administration interface of Wordpress.
 screenshot-2.png
-2. The moderation queue in the administration interface of Wordpress.
+The configuration panel in the administration interface of Wordpress.
 screenshot-3.png
-3. The configuration panel in the administration interface of Wordpress.
+The moderation options integrated in the default Kubrick theme of Wordpress.
 screenshot-4.png
-4. The moderation options integrated in the default Kubrick theme of Wordpress.
+Statistics of the spam activity on your blog as shown on the <a href="http://www.mollom.com">Mollom</a> site.
 screenshot-5.png
-4. Statistics of the spam activity on your blog as shown on the <a href="http://www.mollom.com">Mollom</a> site.
-screenshot-6.png
 
 == Changelog ==
 
