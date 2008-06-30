@@ -3,7 +3,7 @@
 Plugin URI: http://www.netsensei.nl/mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.5.0
+Version: 0.5.1
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -14,6 +14,7 @@ Version history:
 - 29 may 2008: third closed release
 - 3 june 2008: first public release
 - 28 juni 2008: second public release
+- 30 juni 2008: small bugfix release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -850,8 +851,6 @@ function _mollom_check_captcha($comment) {
 		
 		$mollom_sessionid = $_POST['mollom_sessionid'];
 		$solution = $_POST['mollom_solution'];
-		
-		echo "checkcaptcha: " . $mollom_sessionid . "<br/>";
 		
 		$comment['comment_content'] = stripslashes(htmlspecialchars_decode($comment['comment_content']));
 					
