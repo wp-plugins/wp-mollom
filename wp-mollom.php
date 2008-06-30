@@ -32,7 +32,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.5.0' );
+define( 'MOLLOM_VERSION', '0.5.1' );
 define( 'MOLLOM_TABLE', 'mollom' );
 
 define( 'MOLLOM_ERROR'   , 1000 );
@@ -96,17 +96,20 @@ function mollom_activate() {
 			$comments_table = $wpdb->prefix . 'comments';
 			$comments = $wpdb->get_results("SELECT comment_ID, mollom_session_ID FROM $comments_table WHERE mollom_session_ID IS NOT NULL");
 		
-			$stat = true;
+			if ($comments) {
+				$stat = true;
 			
-			foreach($comments as $comment) {				
-				if(!$wpdb->query("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES($comment->comment_ID, '$comment->mollom_session_ID')"))
-					$stat = false;
-			}
+				foreach($comments as $comment) {				
+					if(!$wpdb->query("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES($comment->comment_ID, '$comment->mollom_session_ID')"))
+						$stat = false;
+				}
 			
-			if($stat) {
-				$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
-			} else {
-				wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
+				if($stat) {
+					$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
+				} else {
+					wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
+				}
+			
 			}
 			// end of legacy code
 		}
