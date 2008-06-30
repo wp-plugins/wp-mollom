@@ -398,8 +398,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 			break;
 	}
 		
-	// $result = mollom('mollom.sendFeedback', $data);
-	$result = true;
+	$result = mollom('mollom.sendFeedback', $data);
 		
 	if($result) {
 		if($wpdb->query("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = $comment_ID"))
@@ -717,7 +716,7 @@ function mollom_check_comment($comment) {
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 			// show a CAPTCHA if unsure			
 			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
-									'comment_mollom_sessionid' => $result['session_id'],
+									'mollom_sessionid' => $result['session_id'],
 									'author' => $comment['comment_author'],
 									'url' => $comment['comment_author_url'],
 									'email' => $comment['comment_author_email'],
@@ -852,6 +851,8 @@ function _mollom_check_captcha($comment) {
 		$mollom_sessionid = $_POST['mollom_sessionid'];
 		$solution = $_POST['mollom_solution'];
 		
+		echo "checkcaptcha: " . $mollom_sessionid . "<br/>";
+		
 		$comment['comment_content'] = stripslashes(htmlspecialchars_decode($comment['comment_content']));
 					
 		if ($solution == '') {
@@ -900,21 +901,22 @@ add_action('preprocess_comment','_mollom_check_captcha');
 * @param array $mollom_comment the array with the comment data
 */
 function _mollom_show_captcha($message = '', $mollom_comment = array()) {
-	$data = array('author_ip' => _mollom_author_ip(), 'session_id' => $mollom_comment['mollom-sessionid']);
+	$data = array('author_ip' => _mollom_author_ip(), 'session_id' => $mollom_comment['mollom_sessionid']);
 
 	$result = mollom('mollom.getAudioCaptcha', $data);	
+	if (function_exists('is_wp_error') && is_wp_error($result)) {
+		if(get_option('mollom_site_policy'))
+			wp_die($result, 'Something went wrong...');
+	}
 	$mollom_audio_captcha = $result['url'];
 
-	$result = mollom('mollom.getImageCaptcha', $data);
-	
-	if (function_exists('is_wp_error') && is_wp_error( $result)) {
+	$result = mollom('mollom.getImageCaptcha', $data);	
+	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy'))
 			wp_die($result, 'Something went wrong...');
 	}
 
 	$mollom_image_captcha = $result['url'];
-	
-	$mollom_sessionid = $result['session_id'];	
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -979,7 +981,7 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 </head>
 <body id="error-page">
 <h1>Mollom CAPTCHA</h1>
-<p><?php _e('This blog is protected by <a href=\"http://mollom.com\">Mollom</a> against spam. Mollom is unsure wether your comment was spam or not. Please complete this form by typing the text in the image in the input box. Additionally, you can also listen to a spoken version of the text.'); ?></p>
+<p><?php _e('This blog is protected by <a href="http://mollom.com">Mollom</a> against spam. Mollom is unsure wether your comment was spam or not. Please complete this form by typing the text in the image in the input box. Additionally, you can also listen to a spoken version of the text.'); ?></p>
 <?php if ($message != '') { ?>
 	<p class="message"><?php _e($message); ?></p>
 <?php } ?>
@@ -993,7 +995,7 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
     </object>
 	<p><small><a href="<?php echo $mollom_audio_captcha; ?>" title="mollom captcha">Download Audio Captcha</a></small></p>
 	<p><input type="text" length="15" maxlength="15" name="mollom_solution" /></p>
-	<input type="hidden" value="<?php echo $mollom_sessionid; ?>" name="mollom_sessionid" />
+	<input type="hidden" value="<?php echo $mollom_comment['mollom_sessionid']; ?>" name="mollom_sessionid" />
 	<input type="hidden" value="<?php echo $mollom_comment['comment_post_ID']; ?>" name="comment_post_ID" />
 	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
 	<input type="hidden" value="<?php echo $mollom_comment['url']; ?>" name="url" />
