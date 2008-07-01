@@ -14,7 +14,7 @@ Version history:
 - 29 may 2008: third closed release
 - 3 june 2008: first public release
 - 28 juni 2008: second public release
-- 30 juni 2008: small bugfix release
+- 1 juli 2008: small bugfix release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -39,9 +39,9 @@ define( 'MOLLOM_ERROR'   , 1000 );
 define( 'MOLLOM_REFRESH' , 1100 );
 define( 'MOLLOM_REDIRECT', 1200 );
 
-define('MOLLOM_ANALYSIS_HAM'     , 1);
-define('MOLLOM_ANALYSIS_SPAM'    , 2);
-define('MOLLOM_ANALYSIS_UNSURE'  , 3);
+define( 'MOLLOM_ANALYSIS_HAM'     , 1);
+define( 'MOLLOM_ANALYSIS_SPAM'    , 2);
+define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
 
 // Location of the Incutio XML-RPC library which is integrated with Wordpress
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
@@ -94,23 +94,29 @@ function mollom_activate() {
 		
 			// legacy code here: moving data from old to new data model
 			$comments_table = $wpdb->prefix . 'comments';
-			$comments = $wpdb->get_results("SELECT comment_ID, mollom_session_ID FROM $comments_table WHERE mollom_session_ID IS NOT NULL");
-		
-			if ($comments) {
-				$stat = true;
 			
-				foreach($comments as $comment) {				
-					if(!$wpdb->query("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES($comment->comment_ID, '$comment->mollom_session_ID')"))
-						$stat = false;
-				}
+			// only update if mollom_session_id still exists
+			foreach ($wpdb->get_col("DESC $comments_table", 0) as $column ) {
+				if ($column == 'mollom_session_ID') {
+					$comments = $wpdb->get_results("SELECT comment_ID, mollom_session_ID FROM $comments_table WHERE mollom_session_ID IS NOT NULL");
+
+					if ($comments) {
+						$stat = true;
 			
-				if($stat) {
-					$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
-				} else {
-					wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
-				}
+						foreach($comments as $comment) {				
+							if(!$wpdb->query("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES($comment->comment_ID, '$comment->mollom_session_ID')")) {
+								$stat = false;
+							}	
+						}
 			
-			}
+						if($stat) {
+							$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
+						} else {
+							wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
+						}
+					}
+ 	            }
+			}			
 			// end of legacy code
 		}
 	}
@@ -201,7 +207,6 @@ function mollom_show_count() {
 * mollom_moderate_comment
 * Show moderation options in your theme if you're logged in and have permissions. Must be within the comment loop.
 * @param integer $comment_ID the id of the comment to moderate
-* @param string $class the CSS style class
 */
 function mollom_moderate_comment($comment_ID) {
 	if (function_exists('current_user_can') && current_user_can('manage_options')) {
@@ -405,10 +410,11 @@ function _mollom_send_feedback($action, $comment_ID) {
 	$result = mollom('mollom.sendFeedback', $data);
 		
 	if($result) {
-		if($wpdb->query("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = $comment_ID"))
+		if($wpdb->query("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = $comment_ID")) {
 			return $ms; // return an empty array upon success
-		else
+		} else {
 			$ms[] = 'feedbacksuccess';
+		}
 	}		
 	else if (function_exists( 'is_wp_error' ) && is_wp_error( $result )) {
 		$ms[] = 'mollomerror';
@@ -425,9 +431,9 @@ function _mollom_send_feedback($action, $comment_ID) {
 * Moderate messages that have a stored Mollom session ID 
 */
 function mollom_manage() {
-
-	if (function_exists('current_user_can') && !current_user_can('manage_options'))
+	if (function_exists('current_user_can') && !current_user_can('manage_options')) {
 		die(__('Cheatin&#8217; uh?'));
+	}
 		
 	global $wpdb;
 	$ms = array();
@@ -441,17 +447,19 @@ function mollom_manage() {
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
 			$ms[] = 'emptykeys';
 		} else {
-			if (function_exists('check_admin_referer'))
+			if (function_exists('check_admin_referer')) {
 				check_admin_referer('mollom-moderate-comment');
+			}
 			
 			$action = attribute_escape($_GET['maction']);
 			$comment_ID = attribute_escape($_GET['c']);
 			
 			$ms = $ms + _mollom_send_feedback($action, $comment_ID);
-			if (count($ms) == 0) // empty array = succes
+			if (count($ms) == 0) { // empty array = succes
 				$ms[] = 'allsuccess';
-			else
+			} else {
 				$comment_ID = $broken_comment;
+			}
 		}
 	}
 	
@@ -477,8 +485,9 @@ function mollom_manage() {
 				}
 			}
 			
-			if (count($ms) == 0) 
+			if (count($ms) == 0) {
 				$ms[] = 'allsuccess';
+			}
 		}
 	}
 	
@@ -497,10 +506,11 @@ function mollom_manage() {
 	$count = $wpdb->get_var("SELECT COUNT(mollom_session_ID) FROM $mollom_table");
 	
 	if ($count > 0) {
-		if ($_GET['apage'])
+		if ($_GET['apage']) {
 			$apage = $wpdb->escape($_GET['apage']);
-		else
+		} else {
 			$apage = 0;
+		}
 		
 		if ($apage == 0) {
 			$start = $apage;
@@ -515,18 +525,19 @@ function mollom_manage() {
 				
 		$comments = $wpdb->get_results("SELECT comments.* FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT $start, $limit");
 
-		if ($limit >= $count)
+		if ($limit >= $count) {
 			$show_next = false;
-	}
-	else
+		}
+	} else {
 		$comments = false;
+	}
 
 ?>
 <script type="text/javascript">
 //<![CDATA[
 function checkAll(form) {
 	for (i = 0, n = form.elements.length; i < n; i++) {
-		if(form.elements[i].type == "checkbox" && !(form.elements[i].getAttribute('onclick',2))) {
+		if(form.elements[i].type == "checkbox" && !(form.elements[i].getAttribute('onclick', 2))) {
  	  	if(form.elements[i].checked == true)
  	    	form.elements[i].checked = false;
  	    else
@@ -625,10 +636,11 @@ function checkAll(form) {
 		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
 		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unwanted', 'mollom-moderate-comment')); 
 		
-		if (strlen($comment->comment_author_url) > 32)
+		if (strlen($comment->comment_author_url) > 32) {
 			$comment_url = substr($comment->comment_author_url, 0, 32) . '...';
-		else
+		} else {
 			$comment_url = $comment->comment_author_url;
+		}
 	?>
 	
 	<?php if ($comment->comment_approved == 0) { ?>
@@ -653,6 +665,25 @@ function checkAll(form) {
 <?php
 }
 
+/**
+* mollom_manage_wp_queue
+* passes messages as spam to Mollom when moderated through the default WP 'comments' panel
+* @param integer $comment_ID the id of the comment that is being moderated
+* @param string $comment_status the status that was passed by the user through the default comments panel
+* @return integer $comment_ID the id of the coment is passed back to the main program flow
+*/
+function mollom_manage_wp_queue($comment_ID) {
+	$comment = get_commentdata($comment_ID, 1, true);
+	$post_id = $comment['comment_post_ID'];	
+	
+	if ($comment['comment_approved'] == 'spam') {
+		_mollom_send_feedback('spam', $comment_ID);
+	}
+	
+	return $post_id;
+}
+add_action('wp_set_comment_status', 'mollom_manage_wp_queue');
+
 /** 
 * _mollom_verify_key
 * vverifies the private/public key combo against the Mollom servers' information
@@ -671,16 +702,18 @@ function _mollom_verify_key() {
 function mollom_check_comment($comment) {
 	global $mollom_sessionid;
 	
-	if($comment['comment_type'] == 'trackback')
+	if($comment['comment_type'] == 'trackback') {
 		return $comment;
+	}
 	
 	$private_key = get_option('mollom_private_key');
 	$public_key = get_option('mollom_public_key');
 	
 	// check if the client is configured all toghether
 	if ((empty($private_key)) || (empty($public_key))) {
-		if (get_option('mollom_site_policy'))
+		if (get_option('mollom_site_policy')) {
 			wp_die(__('You haven\'t configured Mollom yet! Per the website\'s policy. We could not process your comment.'));
+		}
 	}
 	
 	// only if the user is not registered
@@ -697,10 +730,11 @@ function mollom_check_comment($comment) {
 
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
-			if(get_option('mollom_site_policy'))
+			if(get_option('mollom_site_policy')) {
 				wp_die($result, "Something went wrong!");
-			else
+			} else {
 				return $comment;
+			}
 		}
 		
 		$mollom_sessionid = $result['session_id'];
@@ -732,10 +766,11 @@ function mollom_check_comment($comment) {
 		}
 		
 		elseif (function_exists('is_wp_error') && is_wp_error($result)) {
-			if(get_option('mollom_site_policy'))
+			if(get_option('mollom_site_policy')) {
 				wp_die($result, 'Something went wrong...');
-			else
+			} else {
 				return $comment;
+			}
 		}
 	}
 	
@@ -750,9 +785,9 @@ add_action('preprocess_comment', 'mollom_check_comment');
 * @return array $comment the comment passed by the preprocess_comment hook
 */
 function mollom_check_trackback($comment) {
-
-	if($comment['comment_type'] != 'trackback')
+	if($comment['comment_type'] != 'trackback') {
 		return $comment;
+	}
 	
 	global $mollom_sessionid;
 	
@@ -761,8 +796,9 @@ function mollom_check_trackback($comment) {
 	
 	// check if the client is configured
 	if ((empty($private_key)) || (empty($public_key))) {
-		if (get_option('mollom_site_policy'))
+		if (get_option('mollom_site_policy')) {
 			wp_die(__('You haven\'t configured Mollom yet! Per the website\'s policy. We could not process your comment.'));
+		}
 	}
 	
 	$mollom_comment_data = array('post_body' => strip_tags($comment['comment_content']), // strip all the HTML/PHP from the content body
@@ -775,10 +811,11 @@ function mollom_check_trackback($comment) {
 
 	// quit if an error was thrown else return to WP Comment flow
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
-		if(get_option('mollom_site_policy'))
+		if(get_option('mollom_site_policy')) {
 			wp_die($result, "Something went wrong!");
-		else
+		} else {
 			return $comment;
+		}
 	}
 
 	$mollom_sessionid = $result['session_id'];
@@ -869,10 +906,11 @@ function _mollom_check_captcha($comment) {
 		
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
-			if(get_option('mollom_site_policy'))
+			if(get_option('mollom_site_policy')) {
 				wp_die($result, "Something went wrong!");
-			else
+			} else {
 				return $comment;
+			}
 		}
 		
 		// if correct
@@ -907,15 +945,17 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 
 	$result = mollom('mollom.getAudioCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
-		if(get_option('mollom_site_policy'))
+		if(get_option('mollom_site_policy')) {
 			wp_die($result, 'Something went wrong...');
+		}
 	}
 	$mollom_audio_captcha = $result['url'];
 
 	$result = mollom('mollom.getImageCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
-		if(get_option('mollom_site_policy'))
+		if(get_option('mollom_site_policy')) {
 			wp_die($result, 'Something went wrong...');
+		}
 	}
 
 	$mollom_image_captcha = $result['url'];
