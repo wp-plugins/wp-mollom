@@ -80,9 +80,10 @@ Extra options in the configuration panel:
 5. screenshot-5.png
 
 == Changelog ==
-
 * 2008/06/30 - 0.5.1
  * fixed: issues with the captcha page not being rendered correctly
+ * added: mollom_manage_wp_queue() function which deals with Mollom feedback from the default WP moderation queue
+ * improved: legacy code when activating the plugin (needed for upgrading from < 0.5.0 (testversions!)
 * 2008/06/26 - 0.5.0
  * Added: installation/activation can contain legacy code and versioning for handling old (test)configurations
  * Added: PHPDoc style documentation of functions
