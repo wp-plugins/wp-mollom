@@ -3,7 +3,7 @@
 Plugin URI: http://www.netsensei.nl/mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.5.1
+Version: 0.5.2
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -32,7 +32,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.5.1' );
+define( 'MOLLOM_VERSION', '0.5.2' );
 define( 'MOLLOM_TABLE', 'mollom' );
 
 define( 'MOLLOM_ERROR'   , 1000 );
@@ -68,26 +68,31 @@ function mollom_activate() {
 		dbDelta($sql);
 	}
 	
-	// if there is no version, mollom is installed for the first time
+	// if there is no version option, mollom is installed for the first time
 	if (!get_option('mollom_version')) {
 		//Set these variables if they don't exist
 		$version = MOLLOM_VERSION;
 		add_option('mollom_version', $version);
-		
-		if(!get_option('mollom_private_key'))
-			add_option('mollom_private_key', '');
-		if(!get_option('mollom_public_key'))		
-			add_option('mollom_public_key', '');
-		if(!get_option('mollom_servers'))
-			add_option('mollom_servers', NULL);
-		if(!get_option('mollom_count'))
-			add_option('mollom_count', 0);
-		if(!get_option('mollom_site_policy'))
-			add_option('mollom_site_policy', true);
-		if(!get_option('mollom_dbrestore'))
-			add_option('mollom_dbrestore', false);			
-	} else {	
-		if (get_option('mollom_version') != MOLLOM_VERSION) {
+	}
+	
+	// also, let's create these variables if they don't exist
+	if(!get_option('mollom_private_key'))
+		add_option('mollom_private_key', '');
+	if(!get_option('mollom_public_key'))		
+		add_option('mollom_public_key', '');
+	if(!get_option('mollom_servers'))
+		add_option('mollom_servers', NULL);
+	if(!get_option('mollom_count'))
+		add_option('mollom_count', 0);
+	if(!get_option('mollom_site_policy'))
+		add_option('mollom_site_policy', true);
+	if(!get_option('mollom_dbrestore'))
+		add_option('mollom_dbrestore', false);
+	if(!get_ooption('mollom_reverseproxy'))
+		add_option('mollom_reverseproxy', false);
+	
+	// if a previous installed version doesn't match with this version, mollom might need an update
+	if (get_option('mollom_version') != MOLLOM_VERSION) {
 			// updates of the database if the plugin  was already installed
 			$version = MOLLOM_VERSION;
 			update_option('mollom_version', $version);
@@ -104,7 +109,7 @@ function mollom_activate() {
 						$stat = true;
 			
 						foreach($comments as $comment) {				
-							if(!$wpdb->query("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES($comment->comment_ID, '$comment->mollom_session_ID')")) {
+							if(!$wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment->comment_ID, $comment->mollom_session_ID))) {
 								$stat = false;
 							}	
 						}
@@ -245,9 +250,6 @@ function mollom_config() {
 		if (function_exists('current_user_can') && !current_user_can('manage_options')) {
 			die(__('Cheatin&#8217; uh?'));
 		}
-				
-		$privatekey = $wpdb->escape($_POST['mollom-private-key']);
-		$publickey = $wpdb->escape($_POST['mollom-public-key']);
 			
 		if (empty($privatekey)) {
 			$ms[] = 'privatekeyempty';
@@ -285,6 +287,16 @@ function mollom_config() {
 		} else {
 				update_option('mollom_dbrestore', false);
 		}
+
+		// set restore of database (purge all mollom data)
+		if(isset($_POST['mollomrestore'])) {
+			if ($_POST['mollomrestore'] == on) {
+				update_option('mollom_reverseproxy', true);
+			}
+		} else {
+				update_option('mollom_reverseproxy', false);
+		}
+
 	} else {
 		$privatekey = get_option('mollom_private_key');
 		$publickey = get_option('mollom_public_key');
@@ -365,6 +377,8 @@ function mollom_config() {
 	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
 	<h3><label><?php _e('Restore'); ?></label></h3>
 	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
+	<h3><label><?php _e('Reverse proxy'); ?></label></h3>
+	<p><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Check this on if your host is running a reverse proxy service (squid,...) When in doubt, leave this off.'); ?></p>
 
 	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
 </form>
@@ -386,17 +400,17 @@ function _mollom_send_feedback($action, $comment_ID) {
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
 	$ms = array();
 	
-	$mollom_sessionid = $wpdb->get_var("SELECT mollom_session_ID FROM $mollom_table WHERE comment_ID = $comment_ID");
+	$mollom_sessionid = $wpdb->get_var( $wpdb->prepare("SELECT mollom_session_ID FROM $mollom_table WHERE comment_ID = %d", $comment_ID) );
 		
 	switch($action) {
 		case $action == "spam":
-			$data = array('feedback' => $action, 'session_id' => $mollom_sessionid);
+			$data = array('feedback' => 'spam', 'session_id' => $mollom_sessionid);
 			break;
 		case $action == "profanity":
-			$data = array('feedback' => $action, 'session_id' => $mollom_sessionid);
+			$data = array('feedback' => 'profanity', 'session_id' => $mollom_sessionid);
 			break;
 		case $action == "unwanted":
-			$data = array('feedback' => $action, 'session_id' => $mollom_sessionid);
+			$data = array('feedback' => 'unwanted', 'session_id' => $mollom_sessionid);
 			break;
 		case $action == "lowquality":
 			$data = array('feedback' => 'low-quality', 'session_id' => $mollom_sessionid);
@@ -410,7 +424,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 	$result = mollom('mollom.sendFeedback', $data);
 		
 	if($result) {
-		if($wpdb->query("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = $comment_ID")) {
+		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
 			return $ms; // return an empty array upon success
 		} else {
 			$ms[] = 'feedbacksuccess';
@@ -450,10 +464,7 @@ function mollom_manage() {
 			if (function_exists('check_admin_referer')) {
 				check_admin_referer('mollom-moderate-comment');
 			}
-			
-			$action = attribute_escape($_GET['maction']);
-			$comment_ID = attribute_escape($_GET['c']);
-			
+						
 			$ms = $ms + _mollom_send_feedback($action, $comment_ID);
 			if (count($ms) == 0) { // empty array = succes
 				$ms[] = 'allsuccess';
@@ -473,10 +484,7 @@ function mollom_manage() {
 		} else {
 			foreach($_REQUEST["delete_comments"] as $comment) {
 				check_admin_referer('mollom-bulk-moderation');
-				
-				$comment_ID = (int) $wpdb->escape($comment);
-				$action = $wpdb->escape($_REQUEST['maction']);
-							
+											
 				$ms = $ms + _mollom_send_feedback($action, $comment_ID);
 				
 				if(count($ms) > 0) {
@@ -507,7 +515,7 @@ function mollom_manage() {
 	
 	if ($count > 0) {
 		if ($_GET['apage']) {
-			$apage = $wpdb->escape($_GET['apage']);
+			$apage = $_GET['apage'];
 		} else {
 			$apage = 0;
 		}
@@ -523,7 +531,7 @@ function mollom_manage() {
 		$prevpage = $apage - 1;
 		$nextpage = $apage + 1;
 				
-		$comments = $wpdb->get_results("SELECT comments.* FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT $start, $limit");
+		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.* FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
 
 		if ($limit >= $count) {
 			$show_next = false;
@@ -801,7 +809,7 @@ function mollom_check_trackback($comment) {
 		}
 	}
 	
-	$mollom_comment_data = array('post_body' => strip_tags($comment['comment_content']), // strip all the HTML/PHP from the content body
+	$mollom_comment_data = array('post_body' => $comment['comment_content'],
 								'author_name' => $comment['comment_author'],
 								'author_url' => $comment['comment_author_url'],
 								'author_mail' => $comment['comment_author_email'],
@@ -874,7 +882,7 @@ function _mollom_save_session($comment_ID) {
 	
 	// set the mollom session id for later use when moderation is needed
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	$result = $wpdb->query("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES($comment_ID, '$mollom_sessionid')");
+	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment_ID, $mollom_sessionid) );
 
 	return $comment_ID;
 }
@@ -891,8 +899,6 @@ function _mollom_check_captcha($comment) {
 		
 		$mollom_sessionid = $_POST['mollom_sessionid'];
 		$solution = $_POST['mollom_solution'];
-		
-		$comment['comment_content'] = stripslashes(htmlspecialchars_decode($comment['comment_content']));
 					
 		if ($solution == '') {
 			$message = 'You didn\'t fill out all the required fields, please try again';
@@ -923,9 +929,15 @@ function _mollom_check_captcha($comment) {
 		
 		// if incorrect
 		else if (!$result) {
-			$message = 'The solution you submitted to the CAPTCHA was incorrect. Please try again...';
 			// let's be forgiving and provide with a new CAPTCHA
-			_mollom_show_captcha($message, $_POST);
+			$message = 'The solution you submitted to the CAPTCHA was incorrect. Please try again...';
+			$mollom_comment['mollom_sessionid'] = $mollom_sessionid;
+			$mollom_comment['comment_post_ID'] = $comment['comment_post_ID'];
+			$mollom_comment['author'] = $comment['comment_author'];
+			$mollom_comment['url'] = $comment['comment_author_url'];
+			$mollom_comment['email'] = $comment['comment_author_email'];
+			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
+			_mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
 	}	
