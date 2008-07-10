@@ -80,6 +80,11 @@ Extra options in the configuration panel:
 5. screenshot-5.png
 
 == Changelog ==
+* 2008/07/XX - 0.5.2
+ * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
+ * improved: implemented wpdb->prepare() in vurnerable queries
+ * improved: updating values in mollom_activate()
+ * changed: mollom_author_ip() reflects changes in the API documentation
 * 2008/06/30 - 0.5.1
  * fixed: issues with the captcha page not being rendered correctly
  * added: mollom_manage_wp_queue() function which deals with Mollom feedback from the default WP moderation queue

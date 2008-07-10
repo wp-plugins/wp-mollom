@@ -1190,11 +1190,19 @@ function _mollom_authenticate() {
 * @return string $ip_adress the IP of the host from which the request originates
 */
 function _mollom_author_ip() {
-  $ip_address = $_SERVER['REMOTE_ADDR'];
-  if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
-    // If there are several arguments, we need to check the most
-    // recently added one, ie the last one.
-    $ip_address = array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
-  }
-  return $ip_address;
+	$ip_address = $_SERVER['REMOTE_ADDR'];
+  
+	if(get_option('mollom_reverseproxy')) {
+		if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
+    		// If there are several arguments, we need to check the most
+    		// recently added one, ie the last one.
+    		$ip_address = array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
+	 	 }
+  	}
+  
+  	// If WP is run in a clustered environment
+  	if (array_key_exists('HTTP_X_CLUSTER_CLIENT_IP', $_SERVER)) {    	 $ip_address = $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'];
+	}
+	
+	return $ip_address;
 }
