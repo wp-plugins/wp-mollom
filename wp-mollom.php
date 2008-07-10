@@ -75,6 +75,7 @@ function mollom_activate() {
 		add_option('mollom_version', $version);
 	}
 	
+	
 	// also, let's create these variables if they don't exist
 	if(!get_option('mollom_private_key'))
 		add_option('mollom_private_key', '');
@@ -88,42 +89,43 @@ function mollom_activate() {
 		add_option('mollom_site_policy', true);
 	if(!get_option('mollom_dbrestore'))
 		add_option('mollom_dbrestore', false);
-	if(!get_ooption('mollom_reverseproxy'))
+	if(!get_option('mollom_reverseproxy'))
 		add_option('mollom_reverseproxy', false);
+	if(!get_option('mollom_reverseproxy_addresses'))
+		add_option('mollom_reverseproxy_addresses', NULL);
 	
 	// if a previous installed version doesn't match with this version, mollom might need an update
 	if (get_option('mollom_version') != MOLLOM_VERSION) {
-			// updates of the database if the plugin  was already installed
-			$version = MOLLOM_VERSION;
-			update_option('mollom_version', $version);
+		// updates of the database if the plugin  was already installed
+		$version = MOLLOM_VERSION;
+		update_option('mollom_version', $version);
 		
-			// legacy code here: moving data from old to new data model
-			$comments_table = $wpdb->prefix . 'comments';
+		// legacy code here: moving data from old to new data model
+		$comments_table = $wpdb->prefix . 'comments';
 			
-			// only update if mollom_session_id still exists
-			foreach ($wpdb->get_col("DESC $comments_table", 0) as $column ) {
-				if ($column == 'mollom_session_ID') {
-					$comments = $wpdb->get_results("SELECT comment_ID, mollom_session_ID FROM $comments_table WHERE mollom_session_ID IS NOT NULL");
+		// only update if mollom_session_id still exists
+		foreach ($wpdb->get_col("DESC $comments_table", 0) as $column ) {
+			if ($column == 'mollom_session_ID') {
+				$comments = $wpdb->get_results("SELECT comment_ID, mollom_session_ID FROM $comments_table WHERE mollom_session_ID IS NOT NULL");
 
-					if ($comments) {
-						$stat = true;
+				if ($comments) {
+					$stat = true;
 			
-						foreach($comments as $comment) {				
-							if(!$wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment->comment_ID, $comment->mollom_session_ID))) {
-								$stat = false;
-							}	
-						}
-			
-						if($stat) {
-							$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
-						} else {
-							wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
-						}
+					foreach($comments as $comment) {				
+						if(!$wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table(comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment->comment_ID, $comment->mollom_session_ID))) {
+							$stat = false;
+						}	
 					}
- 	            }
-			}			
-			// end of legacy code
-		}
+			
+					if($stat) {
+						$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN mollom_session_id");
+					} else {
+						wp_die(__('Something went wrong while moving data from comments to the new Mollom data table'));
+					}
+				}
+			}
+		}			
+		// end of legacy code
 	}
 }
 register_activation_hook(__FILE__, 'mollom_activate');
@@ -148,6 +150,10 @@ function mollom_deactivate() {
 			delete_option('mollom_version');
 		if(get_option('mollom_count'))
 			delete_option('mollom_count');
+		if(get_option('mollom_reverseproxy'))
+			delete_option('mollom_reverseproxy');
+		if(get_option('mollom_reverseproxy_addresses'))
+			delete_option('mollom_reverseproxy_addresses');
 				
 		$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
 		
@@ -250,6 +256,10 @@ function mollom_config() {
 		if (function_exists('current_user_can') && !current_user_can('manage_options')) {
 			die(__('Cheatin&#8217; uh?'));
 		}
+		
+		$privatekey = $_POST['mollom-private-key'];
+		$publickey = $_POST['mollom-public-key'];
+		$reverseproxy_addresses = $_POST['mollom-reverseproxy-addresses'];
 			
 		if (empty($privatekey)) {
 			$ms[] = 'privatekeyempty';
@@ -289,14 +299,20 @@ function mollom_config() {
 		}
 
 		// set restore of database (purge all mollom data)
-		if(isset($_POST['mollomrestore'])) {
-			if ($_POST['mollomrestore'] == on) {
+		if(isset($_POST['mollomreverseproxy'])) {
+			if ($_POST['mollomreverseproxy'] == on) {
 				update_option('mollom_reverseproxy', true);
 			}
 		} else {
 				update_option('mollom_reverseproxy', false);
 		}
-
+		
+		// set a commaseperated list of reverse proxy addresses. Needed to determine visitor's valid ip.
+		if (!empty($mollom_reverseproxy_addresses)) {
+			update_option('mollom_reverseproxy_addresses', $mollom_reverseproxy_addresses);
+		}
+		
+		
 	} else {
 		$privatekey = get_option('mollom_private_key');
 		$publickey = get_option('mollom_public_key');
@@ -374,12 +390,14 @@ function mollom_config() {
 	<h3><label><?php _e('Private key'); ?></label></h3>
 	<p><input type="text" size="35" maxlength="32" name="mollom-private-key" id="mollom-private-key" value="<?php echo get_option('mollom_private_key'); ?>" /></p>
 	<h3><label><?php _e('Policy mode'); ?></label></h3>
-	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
+	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
 	<h3><label><?php _e('Restore'); ?></label></h3>
-	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
+	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
 	<h3><label><?php _e('Reverse proxy'); ?></label></h3>
-	<p><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "on" checked'; ?>>&nbsp;&nbsp;<?php _e('Check this on if your host is running a reverse proxy service (squid,...) When in doubt, leave this off.'); ?></p>
-
+	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseperated list.'); ?></p>
+	<p><?php _e('When in doubt, just leave this off.'); ?></p>
+	<p><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "on" checked'; ?> />&nbsp;-&nbsp;
+	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
 	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
 </form>
 </div>
@@ -1191,12 +1209,15 @@ function _mollom_authenticate() {
 */
 function _mollom_author_ip() {
 	$ip_address = $_SERVER['REMOTE_ADDR'];
-  
+  	
 	if(get_option('mollom_reverseproxy')) {
 		if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
-    		// If there are several arguments, we need to check the most
-    		// recently added one, ie the last one.
-    		$ip_address = array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
+			$reverse_proxy_addresses = explode(get_option('mollom_reverseproxy_addresses'), ',');
+			if(!empty($reverse_proxy_addressses) && in_array($ip_address, $reverse_proxy_addresses, TRUE)) {
+    			// If there are several arguments, we need to check the most
+    			// recently added one, ie the last one.
+	    		$ip_address = array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
+			}
 	 	 }
   	}
   
