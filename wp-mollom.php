@@ -308,8 +308,8 @@ function mollom_config() {
 		}
 		
 		// set a commaseperated list of reverse proxy addresses. Needed to determine visitor's valid ip.
-		if (!empty($mollom_reverseproxy_addresses)) {
-			update_option('mollom_reverseproxy_addresses', $mollom_reverseproxy_addresses);
+		if (!empty($reverseproxy_addresses)) {
+			update_option('mollom_reverseproxy_addresses', $reverseproxy_addresses);
 		}
 		
 		
