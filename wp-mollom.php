@@ -85,6 +85,8 @@ function mollom_activate() {
 		add_option('mollom_servers', NULL);
 	if(!get_option('mollom_count'))
 		add_option('mollom_count', 0);
+	if(!get_option('mollom_count_moderated'))
+		add_option('mollom_count_moderated', 0);
 	if(!get_option('mollom_site_policy'))
 		add_option('mollom_site_policy', true);
 	if(!get_option('mollom_dbrestore'))
@@ -150,6 +152,8 @@ function mollom_deactivate() {
 			delete_option('mollom_version');
 		if(get_option('mollom_count'))
 			delete_option('mollom_count');
+		if(get_option('mollom_count_moderated'))
+			delete_option('mollom_count_moderated');
 		if(get_option('mollom_reverseproxy'))
 			delete_option('mollom_reverseproxy');
 		if(get_option('mollom_reverseproxy_addresses'))
@@ -199,7 +203,7 @@ function _mollom_set_plugincount() {
 /** 
 * _mollom_get_plugincount
 * get the amount of blocked items 
-* @return integer $count the amount of blocked items
+* @return integer The amount of blocked items
 */
 function _mollom_get_plugincount() {
 	$count = get_option('mollom_count');
@@ -217,7 +221,7 @@ function mollom_show_count() {
 /**
 * mollom_moderate_comment
 * Show moderation options in your theme if you're logged in and have permissions. Must be within the comment loop.
-* @param integer $comment_ID the id of the comment to moderate
+* @param string The moderation links to show as a string
 */
 function mollom_moderate_comment($comment_ID) {
 	if (function_exists('current_user_can') && current_user_can('manage_options')) {
@@ -238,7 +242,6 @@ function mollom_moderate_comment($comment_ID) {
 /** 
 * mollom_config
 * Handles the configuration  on your blog(keys, options,...) 
-* @return array $ms an array containing possible errors. Empty if all went succesfull.
 */
 function mollom_config() {	
 	global $wpdb;
@@ -411,7 +414,7 @@ function mollom_config() {
 * Send feedback about a comment to mollom and purge the comment
 * @param string $action the action to perform. Valid values: spam, profanity, unwanted lowquality
 * @param integer $comment_ID the id of the comment on which to perform the action
-* @param array $ms return an empty array on success. If failed: array contains error messages
+* @param array Return an empty array on success. If failed: array contains error messages
 */
 function _mollom_send_feedback($action, $comment_ID) {
 	global $wpdb;
@@ -443,6 +446,9 @@ function _mollom_send_feedback($action, $comment_ID) {
 		
 	if($result) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
+			$count_moderated = get_option('mollom_count_moderated');
+			$count_moderated++;
+			update_option('mollom_count_moderated', $count_moderated); // update the manual moderation statistic
 			return $ms; // return an empty array upon success
 		} else {
 			$ms[] = 'feedbacksuccess';
@@ -515,6 +521,15 @@ function mollom_manage() {
 				$ms[] = 'allsuccess';
 			}
 		}
+	}
+	
+	// mollom local statistics
+	$count = get_option('mollom_count');
+	$count_moderated = get_option('mollom_count_moderated');
+	$count_percentage = 0;
+	
+	if ($count_moderated > 0) {
+		$count_percentage = ($count_moderated / $count) * 100;
 	}
 	
 	// from here on: generate messages and overview page
@@ -614,7 +629,7 @@ function checkAll(form) {
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
-<p><?php _e('So far, Mollom has stopped '); echo _mollom_get_plugincount(); _e(' spam messages on your blog.'); ?></p>
+<p><?php _e('So far, Mollom has stopped '); echo $count; _e(' spam messages on your blog of which '); echo $count_moderated; _e('% you had to moderate yourself.');  ?></p>
 <?php if(!empty($ms)) { foreach ( $ms as $m ) : ?>
 <p style="padding: .5em; background-color: #<?php echo $messages[$m]['color']; ?>; color: #fff; font-weight: bold;"><?php echo $messages[$m]['text']; ?></p>
 <?php endforeach; } ?>
@@ -696,7 +711,7 @@ function checkAll(form) {
 * passes messages as spam to Mollom when moderated through the default WP 'comments' panel
 * @param integer $comment_ID the id of the comment that is being moderated
 * @param string $comment_status the status that was passed by the user through the default comments panel
-* @return integer $comment_ID the id of the coment is passed back to the main program flow
+* @return integer The id of the coment is passed back to the main program flow
 */
 function mollom_manage_wp_queue($comment_ID) {
 	$comment = get_commentdata($comment_ID, 1, true);
@@ -713,7 +728,7 @@ add_action('wp_set_comment_status', 'mollom_manage_wp_queue');
 /** 
 * _mollom_verify_key
 * vverifies the private/public key combo against the Mollom servers' information
-* @return mixed $return returns true if authenticated, or a WP_Error object if something goes wrong 
+* @return mixed Returns true if authenticated, or a WP_Error object if something goes wrong 
 */
 function _mollom_verify_key() {	
 	return mollom('mollom.verifyKey');
@@ -723,7 +738,7 @@ function _mollom_verify_key() {
 * mollom_check_comment
 * Check if a comment is spam or ham
 * @param array $comment the comment passed by the preprocess_comment hook
-* @return array $comment the comment passed by the preprocess_comment hook
+* @return array The comment passed by the preprocess_comment hook
 */
 function mollom_check_comment($comment) {
 	global $mollom_sessionid;
@@ -808,7 +823,7 @@ add_action('preprocess_comment', 'mollom_check_comment');
 * mollom_check_trackback
 * check if a trackback is ham or spam 
 * @param array $comment the comment passed by the preprocess_comment hook
-* @return array $comment the comment passed by the preprocess_comment hook
+* @return array The comment passed by the preprocess_comment hook
 */
 function mollom_check_trackback($comment) {
 	if($comment['comment_type'] != 'trackback') {
@@ -876,8 +891,8 @@ add_action('preprocess_comment', 'mollom_check_trackback');
 /** 
 * _mollom_trackback_error
 * return an XML answer when mollom fails or denies access to trackback
-* @param string $code the error code to be outputted
-* @param string $error_message the error message to be outputted
+* @param string $code The error code to be outputted
+* @param string $error_message The error message to be outputted
 */
 function _mollom_trackback_error($code = '1', $error_message = '') {
 	header('Content-Type: text/xml; charset=' . get_option('blog_charset'));
@@ -893,7 +908,7 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 * _mollom_save_session
 * save the session ID in the database in MOLLOM_TABLE
 * @param integer $comment_ID the id of the comment for which to save the session
-* @return integer $comment_ID the id of the comment for which to save the session
+* @return integer The id of the comment for which to save the session
 */
 function _mollom_save_session($comment_ID) {
 	global $wpdb, $mollom_sessionid;
@@ -909,7 +924,7 @@ function _mollom_save_session($comment_ID) {
 * _mollom_check_captcha 
 * Check the answer of the CAPTCHA presented by Mollom. Called through the pre_process_hook as a callback.
 * @param array $comment the comment array passed by the pre_process hook 
-* @return array $comment the comment array passed by the pre_process hook 
+* @return array The comment array passed by the pre_process hook 
 */
 function _mollom_check_captcha($comment) {
 	if ($_POST['mollom_sessionid']) {
@@ -1086,7 +1101,7 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 * call to mollom API over XML-RPC.
 * @param string $method the API function you like to call
 * @param array $data the arguments the called API function you want to pass
-* @return mixed $result either a WP_Error on error or a mixed return depending on the called API function
+* @return mixed Either a WP_Error on error or a mixed return depending on the called API function
 */
 function mollom($method, $data = array()) {	
 	if (get_option('mollom_servers') == NULL) {
@@ -1155,7 +1170,7 @@ function mollom($method, $data = array()) {
 /** 
 * _mollom_nonce;
 * generate a random nonce 
-* @return string $nonce a random generated nonce of 32 characters
+* @return string A random generated nonce of 32 characters
 */
 function _mollom_nonce() {
 	$str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -1173,7 +1188,7 @@ function _mollom_nonce() {
 /**
 * _mollom_authenticate 
 * set an array with all the neccessary data to authenticate to Mollom
-* return string $data the BASE64 encoded authentication string need by the mollom function.
+* @return string $data the BASE64 encoded authentication string need by the mollom function.
 */
 function _mollom_authenticate() {
 	$public_key = get_option('mollom_public_key');
@@ -1205,7 +1220,7 @@ function _mollom_authenticate() {
 /** 
 * _mollom_author_ip
 * fetch user IP 
-* @return string $ip_adress the IP of the host from which the request originates
+* @return string The IP of the host from which the request originates
 */
 function _mollom_author_ip() {
 	$ip_address = $_SERVER['REMOTE_ADDR'];

@@ -60,6 +60,12 @@ Extra options in the configuration panel:
   you have a high traffic site, this might be useful if you can't respond right away. 
 * Restore mode: if enabled, the 'mollom' table which contains mollom related information (session id's) and all
   mollom options will be deleted from your database.
+* Reverse proxy: This is option is important to determine the IP address of a visitor if your WP installation runs
+  behind a 'reverse proxy' (Squid,...). If you know the IP address(es) of the proxy your host runs, you should enable
+  this option and enter them as a comma-seperated list. This isn't mandatory though, but it improves accuracy of the
+  plugin.
+
+Please refer to the <a href="http://www.mollom.com/support">Support section</a> for detailed information.
 
 == Notes ==
 
@@ -81,10 +87,11 @@ Extra options in the configuration panel:
 
 == Changelog ==
 * 2008/07/XX - 0.5.2
- * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
+ * Added: a 'count_moderated' statistic. This returns the % of blocked messages you moderated manually.
+ * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha() This caused problems when using WP OpenID
  * improved: implemented wpdb->prepare() in vurnerable queries
- * improved: updating values in mollom_activate()
- * changed: mollom_author_ip() reflects changes in the API documentation
+ * improved: mollom_activate()
+ * changed: mollom_author_ip() reflects changes in the API documentation. This is now 'reverse proxy aware'
 * 2008/06/30 - 0.5.1
  * fixed: issues with the captcha page not being rendered correctly
  * added: mollom_manage_wp_queue() function which deals with Mollom feedback from the default WP moderation queue
@@ -97,7 +104,7 @@ Extra options in the configuration panel:
  * fixed: compatibility issues with the WP-OpenID plugin
  * Improved: the plugin relies far less on global variables now.
  * Improved: all mollom data is now saved to it's own seprerate, independent table.
- *¨Improved: SQL revision
+ * Improved: SQL revision
  * Improved: error handling is now more verbose
  * Improved: status messages in the configuration/moderation panels now only show when relevant 
  * Improved: handling of mollom servers not being available or unreachable
