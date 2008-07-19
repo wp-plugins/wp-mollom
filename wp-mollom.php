@@ -446,9 +446,13 @@ function _mollom_send_feedback($action, $comment_ID) {
 		
 	if($result) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
+			// update the manual moderation statistic
 			$count_moderated = get_option('mollom_count_moderated');
 			$count_moderated++;
-			update_option('mollom_count_moderated', $count_moderated); // update the manual moderation statistic
+			update_option('mollom_count_moderated', $count_moderated);
+			$count = get_option('mollom_count');
+			$count++;
+			update_option('mollom_count', $count);
 			return $ms; // return an empty array upon success
 		} else {
 			$ms[] = 'feedbacksuccess';
@@ -482,6 +486,8 @@ function mollom_manage() {
 		$mollom_private_key = get_option('mollom_private_key');
 		$mollom_public_key = get_option('mollom_public_key');
 		
+		$comment_ID = $_GET['c'];
+		
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
 			$ms[] = 'emptykeys';
 		} else {
@@ -493,7 +499,7 @@ function mollom_manage() {
 			if (count($ms) == 0) { // empty array = succes
 				$ms[] = 'allsuccess';
 			} else {
-				$comment_ID = $broken_comment;
+				$broken_comment = $comment_ID;
 			}
 		}
 	}
@@ -529,7 +535,7 @@ function mollom_manage() {
 	$count_percentage = 0;
 	
 	if ($count_moderated > 0) {
-		$count_percentage = ($count_moderated / $count) * 100;
+		$count_percentage = ($count_moderated / ($count_moderated + $count)) * 100;
 	}
 	
 	// from here on: generate messages and overview page
@@ -757,10 +763,10 @@ function mollom_check_comment($comment) {
 		}
 	}
 	
-	// only if the user is not registered
 	$user = wp_get_current_user();
 	
-	if (!$_POST['mollom_sessionid'] && !$user->ID) {
+	// only if the user is registered, there is no active session
+	if (!$_SESSION['mollom_sessionid'] && !$user->ID) {
 		$mollom_comment_data = array('post_body' => strip_tags($comment['comment_content']), // strip all the HTML/PHP from the content body
 									 'author_name' => $comment['comment_author'],
 									 'author_url' => $comment['comment_author_url'],
@@ -815,7 +821,7 @@ function mollom_check_comment($comment) {
 		}
 	}
 	
-	return $comment;	
+	return $comment;
 }
 add_action('preprocess_comment', 'mollom_check_comment');
 
@@ -927,18 +933,32 @@ function _mollom_save_session($comment_ID) {
 * @return array The comment array passed by the pre_process hook 
 */
 function _mollom_check_captcha($comment) {
-	if ($_POST['mollom_sessionid']) {
-		global $wpdb, $mollom_sessionid;
+	if ($_SESSION['mollom_sessionid'] && $_SESSION['mollom_solution']) {
+		global $wpdb;
+	
+		$mollom_sessionid = $_SESSION['mollom_sessionid'];
+		$solution = $_SESSION['mollom_solution'];
 		
-		$mollom_sessionid = $_POST['mollom_sessionid'];
-		$solution = $_POST['mollom_solution'];
-					
+		echo "b" . $_SESSION['mollom_sessionid'] . ' ' .  $_SESSION['mollom_solution'];
+		
+		_mollom_unset_session(); // we don't need the session here anymore
+						
+		echo "c " . $_SESSION['mollom_sessionid'] . ' ' .  $_SESSION['mollom_solution'];
+
 		if ($solution == '') {
 			$message = 'You didn\'t fill out all the required fields, please try again';
-			_mollom_show_captcha($message, $_POST);
+			
+			$mollom_comment['mollom_sessionid'] = $mollom_sessionid;
+			$mollom_comment['comment_post_ID'] = $comment['comment_post_ID'];
+			$mollom_comment['author'] = $comment['comment_author'];
+			$mollom_comment['url'] = $comment['comment_author_url'];
+			$mollom_comment['email'] = $comment['comment_author_email'];
+			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
+
+			_mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
-		
+				
 		$data = array('session_id' => $mollom_sessionid, 'solution' => $solution, 'author_ip' => _mollom_author_ip());
 			
 		$result = mollom('mollom.checkCaptcha', $data);
@@ -958,7 +978,7 @@ function _mollom_check_captcha($comment) {
 			$mollom_sessionid = $result['session_id'];
 			add_action('comment_post', '_mollom_save_session', 1);
 			return $comment;
-		} 
+		}
 		
 		// if incorrect
 		else if (!$result) {
@@ -973,7 +993,7 @@ function _mollom_check_captcha($comment) {
 			_mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
-	}	
+	}
 
 	return $comment;
 }
@@ -1038,8 +1058,6 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 			line-height: 1.8em;
 		}	
 
-		#logo { margin: 6px 0 14px 0px; border-bottom: none;}
-
 		h1 {
 			border-bottom: 1px solid #dadada;
 			clear: both;
@@ -1094,6 +1112,27 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 </html>
 
 <?php
+}
+
+function _mollom_set_session($mollom_sessionid) {
+	if($_POST['mollom_sessionid']) {
+		$_SESSION['mollom_sessionid'] = $mollom_sessionid;
+	}
+	
+	if($_POST['mollom_solution']) {
+		$_SESSION['mollom_solution'] = $_POST['mollom_solution'];
+	}
+}
+add_action('init', '_mollom_set_session');
+
+function _mollom_unset_session() {
+	if($_SESSION['mollom_sessionid']) {
+		unset($_SESSION['mollom_sessionid']);
+	}
+	
+	if($_SESSION['mollom_solution']) {
+		unset($_SESSION['mollom_solution']);
+	}
 }
 
 /** 

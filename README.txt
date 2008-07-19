@@ -88,7 +88,8 @@ Please refer to the <a href="http://www.mollom.com/support">Support section</a> 
 == Changelog ==
 * 2008/07/XX - 0.5.2
  * Added: a 'count_moderated' statistic. This returns the % of blocked messages you moderated manually.
- * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha() This caused problems when using WP OpenID
+ * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
+ * Changed: using $_SESSION to keep track of where we are in the process of checking a captcha. In case $_POST got lost (i.e. WP OpenID!)
  * improved: implemented wpdb->prepare() in vurnerable queries
  * improved: mollom_activate()
  * changed: mollom_author_ip() reflects changes in the API documentation. This is now 'reverse proxy aware'
