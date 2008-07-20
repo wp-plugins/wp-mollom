@@ -15,6 +15,7 @@ Version history:
 - 3 june 2008: first public release
 - 28 juni 2008: second public release
 - 1 juli 2008: small bugfix release
+- 20 juli 2008: small bugfix release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
