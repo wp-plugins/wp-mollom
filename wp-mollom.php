@@ -142,28 +142,22 @@ function mollom_deactivate() {
 
 	// only delete if full restore is allowed
 	if(get_option('mollom_dbrestore')) {
-		delete_option('mollom_dbrestore');
-		if(get_option('mollom_private_key'))
-			delete_option('mollom_private_key');
-		if(get_option('mollom_public_key'))
-			delete_option('mollom_public_key');
-		if(get_option('mollom_servers'))
-			delete_option('mollom_servers');
-		if(get_option('mollom_version'))
-			delete_option('mollom_version');
-		if(get_option('mollom_count'))
-			delete_option('mollom_count');
-		if(get_option('mollom_count_moderated'))
-			delete_option('mollom_count_moderated');
-		if(get_option('mollom_reverseproxy'))
-			delete_option('mollom_reverseproxy');
-		if(get_option('mollom_reverseproxy_addresses'))
-			delete_option('mollom_reverseproxy_addresses');
-				
+		delete_option('mollom_private_key');
+		delete_option('mollom_public_key');
+		delete_option('mollom_servers');
+		delete_option('mollom_version');
+		delete_option('mollom_count');
+		delete_option('mollom_count_moderated');
+		delete_option('mollom_reverseproxy');
+		delete_option('mollom_site_policy');
+		delete_option('mollom_reverseproxy_addresses');
+			
 		$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
 		
 		// delete MOLLOM_TABLE
-		$wpdb->query("DROP TABLE '$mollom_table'");
+		$wpdb->query("DROP TABLE $mollom_table");
+		
+		delete_option('mollom_dbrestore');
 	}
 }
 register_deactivation_hook(__FILE__, 'mollom_deactivate');
