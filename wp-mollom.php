@@ -766,8 +766,8 @@ function mollom_check_comment($comment) {
 	$user = wp_get_current_user();
 	
 	// only if the user is registered, there is no active session
-	if (!$_SESSION['mollom_sessionid'] && !$user->ID) {
-		$mollom_comment_data = array('post_body' => strip_tags($comment['comment_content']), // strip all the HTML/PHP from the content body
+	if (!$_POST['mollom_sessionid'] && !$user->ID) {
+		$mollom_comment_data = array('post_body' => $comment['comment_content'],
 									 'author_name' => $comment['comment_author'],
 									 'author_url' => $comment['comment_author_url'],
 									 'author_mail' => $comment['comment_author_email'],
@@ -933,17 +933,13 @@ function _mollom_save_session($comment_ID) {
 * @return array The comment array passed by the pre_process hook 
 */
 function _mollom_check_captcha($comment) {
-	if ($_SESSION['mollom_sessionid'] && $_SESSION['mollom_solution']) {
+	if ($_POST['mollom_sessionid']) {
 		global $wpdb;
 	
-		$mollom_sessionid = $_SESSION['mollom_sessionid'];
-		$solution = $_SESSION['mollom_solution'];
-		
-		echo "b" . $_SESSION['mollom_sessionid'] . ' ' .  $_SESSION['mollom_solution'];
-		
+		$mollom_sessionid = $_POST['mollom_sessionid'];
+		$solution = $_POST['mollom_solution'];
+				
 		_mollom_unset_session(); // we don't need the session here anymore
-						
-		echo "c " . $_SESSION['mollom_sessionid'] . ' ' .  $_SESSION['mollom_solution'];
 
 		if ($solution == '') {
 			$message = 'You didn\'t fill out all the required fields, please try again';
@@ -1112,27 +1108,6 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 </html>
 
 <?php
-}
-
-function _mollom_set_session($mollom_sessionid) {
-	if($_POST['mollom_sessionid']) {
-		$_SESSION['mollom_sessionid'] = $mollom_sessionid;
-	}
-	
-	if($_POST['mollom_solution']) {
-		$_SESSION['mollom_solution'] = $_POST['mollom_solution'];
-	}
-}
-add_action('init', '_mollom_set_session');
-
-function _mollom_unset_session() {
-	if($_SESSION['mollom_sessionid']) {
-		unset($_SESSION['mollom_sessionid']);
-	}
-	
-	if($_SESSION['mollom_solution']) {
-		unset($_SESSION['mollom_solution']);
-	}
 }
 
 /** 
