@@ -88,7 +88,7 @@ Extra options in the configuration panel:
 5. screenshot-5.png
 
 == Changelog ==
-* 2008/07/XX - 0.5.2
+* 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries
  * improved: mollom_activate() function now more robust
