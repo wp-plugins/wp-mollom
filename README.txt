@@ -76,8 +76,7 @@ Extra options in the configuration panel:
   to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * This plugin is not compatible with the current version of the WP OpenID plugin. There are known issues with the correct
   handling of $_POST data. There is a developer version with a fix available through the <a href="http://diso-project.org/">
-  DiSo project</a> if you really want to provide OpenID access. You can download the package from <a   
-  href="http://diso.googlecode.com/svn/wordpress/wp-openid/">their repository</a>.
+  DiSo project</a> if you really want to provide OpenID access. You can download the package from <a href="http://diso.googlecode.com/svn/wordpress/wp-openid/">their repository</a>.
 * The plugin works with Wordpress 2.6 but doesn't yet support the SSL extensions released with Wordpress 2.6.
 
 == Screenshots ==
