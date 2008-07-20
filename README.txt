@@ -5,7 +5,7 @@ Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis
 Requires at least: 2.5.0
 Tested up to: 2.5.1
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
