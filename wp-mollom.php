@@ -56,7 +56,7 @@ function mollom_activate() {
 
 	// create a new table to store mollom sessions if it doesn't exist
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $mollom_table) {
+	if($wpdb->get_var("SHOW TABLES LIKE '$mollom_table'") != $mollom_table) {
 		$sql = "CREATE TABLE " . $mollom_table . " (
 				`comment_ID` BIGINT( 20 ) UNSIGNED NOT NULL DEFAULT '0',
 				`mollom_session_ID` VARCHAR( 40 ) NULL DEFAULT NULL,
