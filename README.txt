@@ -60,22 +60,23 @@ Extra options in the configuration panel:
   you have a high traffic site, this might be useful if you can't respond right away. 
 * Restore mode: if enabled, the 'mollom' table which contains mollom related information (session id's) and all
   mollom options will be deleted from your database.
-* Reverse proxy: This is option is important to determine the IP address of a visitor if your WP installation runs
-  behind a 'reverse proxy' (Squid,...). If you know the IP address(es) of the proxy your host runs, you should enable
-  this option and enter them as a comma-seperated list. This isn't mandatory though, but it improves accuracy of the
-  plugin.
-
-Please refer to the <a href="http://www.mollom.com/support">Support section</a> for detailed information.
+* Reverse proxy: This is option is important to determine the IP address
+  of a visitor if your WP installation runs behind a 'reverse proxy' (Squid,...). If you know the IP address(es) of the 
+  proxy your host runs, you should enable this option and enter them as a comma-seperated list. This isn't mandatory 
+  though, but it improves accuracy of the plugin. Please refer to the <a href="http://www.mollom.com/support">Support
+  section</a> for detailed information.
 
 == Notes ==
 
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
 * The backend handling and storing of data has been significantly changed. The plugin will try to convert the 
-  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not 
-  pass through the Mollom filter yet they are   treated in the default fashion. This means a Mollom session ID 
-  will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up 
-  in the mollom moderation queue.
+  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
+  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned 
+  to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+* This plugin is not compatible with the current version of the WP OpenID plugin. There are known issues with the correct
+  handling of $_POST data. There is a developer version with a fix available through the <a href="http://diso-project.org/">
+  DiSo project</a> if you really want to provide OpenID access. You can download the package from <a href="http://diso.googlecode.com/svn/wordpress/wp-openid/">their repository</a>.
 
 == Screenshots ==
 
@@ -87,11 +88,9 @@ Please refer to the <a href="http://www.mollom.com/support">Support section</a> 
 
 == Changelog ==
 * 2008/07/XX - 0.5.2
- * Added: a 'count_moderated' statistic. This returns the % of blocked messages you moderated manually.
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
- * Changed: using $_SESSION to keep track of where we are in the process of checking a captcha. In case $_POST got lost (i.e. WP OpenID!)
- * improved: implemented wpdb->prepare() in vurnerable queries
- * improved: mollom_activate()
+ * improved: implemented wpdb->prepare() in vunerable queries
+ * improved: mollom_activate() function now more robust
  * changed: mollom_author_ip() reflects changes in the API documentation. This is now 'reverse proxy aware'
 * 2008/06/30 - 0.5.1
  * fixed: issues with the captcha page not being rendered correctly

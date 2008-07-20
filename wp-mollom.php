@@ -1,6 +1,6 @@
 <?php
 /* Plugin Name: Mollom
-Plugin URI: http://www.netsensei.nl/mollom/
+Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
 Version: 0.5.2
@@ -192,12 +192,19 @@ add_action('admin_menu','mollom_manage_page');
 
 /** 
 * _mollom_set_plugincount
-* count comments that were asserted as spam 
+* sets the count of comments asserted as spam or unsure
+* @param boolean $moderated if true, set the count of the manually moderated comments (used in sendFeedback)
 */
-function _mollom_set_plugincount() {
+function _mollom_set_plugincount($moderated = false) {
 	$count = get_option('mollom_count');
 	$count++;
 	update_option('mollom_count', $count);
+	
+	if ($moderated) {
+		$count_moderated = get_option('mollom_count_moderated');
+		$count_moderated++;
+		update_option('mollom_count_moderated', $count_moderated);
+	}
 }
 
 /** 
@@ -397,9 +404,9 @@ function mollom_config() {
 	<h3><label><?php _e('Restore'); ?></label></h3>
 	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
 	<h3><label><?php _e('Reverse proxy'); ?></label></h3>
-	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseperated list.'); ?></p>
+	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.'); ?></p>
 	<p><?php _e('When in doubt, just leave this off.'); ?></p>
-	<p><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "on" checked'; ?> />&nbsp;-&nbsp;
+	<p><?php _e('enable: '); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
 	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
 	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
 </form>
@@ -447,12 +454,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 	if($result) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
 			// update the manual moderation statistic
-			$count_moderated = get_option('mollom_count_moderated');
-			$count_moderated++;
-			update_option('mollom_count_moderated', $count_moderated);
-			$count = get_option('mollom_count');
-			$count++;
-			update_option('mollom_count', $count);
+			_mollom_set_plugincount(true);
 			return $ms; // return an empty array upon success
 		} else {
 			$ms[] = 'feedbacksuccess';
@@ -530,21 +532,19 @@ function mollom_manage() {
 	}
 	
 	// mollom local statistics
-	$count = get_option('mollom_count');
-	$count_moderated = get_option('mollom_count_moderated');
 	$count_percentage = 0;
 	
-	if ($count_moderated > 0) {
-		$count_percentage = ($count_moderated / ($count_moderated + $count)) * 100;
+	if (get_option('mollom_count_moderated') > 0) {
+		$count_percentage = round(((get_option('mollom_count_moderated') / get_option('mollom_count')) * 100), 2);
 	}
 	
 	// from here on: generate messages and overview page
 	$messages = array('allsuccess' => array('color' => 'aa0', 'text' => __('Comment feedback sent. All comments successfully deleted.')),
-					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Comment ' . $broken_comment .': Comment feedback sent but the comment could not be deleted.')),
-					  'networkfail' => array('color' => 'aa0', 'text' => __('Comment ' . $broken_comment .': Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
-					  'emptykeys' => array('color' => 'aa0', 'text' => __('Comment ' . $broken_comment .': Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
-					  'mollomerror' => array('color' => 'aa0', 'text' => __('Comment ' . $broken_comment .': Mollom could not process your request.')),
-					  'invalidaction' => array('color' => 'aa0', 'text' => __('Comment ' . $broken_comment .': Invalid mollom feedback action.'))); 
+					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Comment feedback sent but the comment could not be deleted.')),
+					  'networkfail' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
+					  'emptykeys' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
+					  'mollomerror' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Mollom could not process your request.')),
+					  'invalidaction' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Invalid mollom feedback action.'))); 
 	
 	// pagination code
 	$show_next = true;
@@ -635,7 +635,7 @@ function checkAll(form) {
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
-<p><?php _e('So far, Mollom has stopped '); echo $count; _e(' spam messages on your blog of which '); echo $count_moderated; _e('% you had to moderate yourself.');  ?></p>
+<p><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website of which you moderated '); echo $count_percentage; _e('% yourself.');  ?></p>
 <?php if(!empty($ms)) { foreach ( $ms as $m ) : ?>
 <p style="padding: .5em; background-color: #<?php echo $messages[$m]['color']; ?>; color: #fff; font-weight: bold;"><?php echo $messages[$m]['text']; ?></p>
 <?php endforeach; } ?>
@@ -785,7 +785,10 @@ function mollom_check_comment($comment) {
 		}
 		
 		$mollom_sessionid = $result['session_id'];
-				
+		
+		// set the count of total  # messages checked by Mollom
+
+		
 		if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 			// let the comment pass			
 			add_action('comment_post', '_mollom_save_session', 1);
@@ -793,13 +796,14 @@ function mollom_check_comment($comment) {
 		}
 
 		elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
-			// kill the process here because of spam detection
-			_mollom_set_plugincount();
+			// kill the process here because of spam detection and set the count of blocked messages
+			_mollom_set_plugincount();			
 			wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.'));
 		}
 	
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
-			// show a CAPTCHA if unsure			
+			// show a CAPTCHA if unsure and set the count of blocked messages
+			_mollom_set_plugincount();			
 			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
 									'mollom_sessionid' => $result['session_id'],
 									'author' => $comment['comment_author'],
@@ -807,7 +811,6 @@ function mollom_check_comment($comment) {
 									'email' => $comment['comment_author_email'],
 									'comment' => $comment['comment_content']);
 
-			_mollom_set_plugincount();
 			_mollom_show_captcha('', $mollom_comment);
 			die();
 		}
@@ -938,8 +941,6 @@ function _mollom_check_captcha($comment) {
 	
 		$mollom_sessionid = $_POST['mollom_sessionid'];
 		$solution = $_POST['mollom_solution'];
-				
-		_mollom_unset_session(); // we don't need the session here anymore
 
 		if ($solution == '') {
 			$message = 'You didn\'t fill out all the required fields, please try again';
