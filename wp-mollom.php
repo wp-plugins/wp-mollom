@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.5.2
+Version: 0.5.3
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -33,7 +33,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.5.2' );
+define( 'MOLLOM_VERSION', '0.5.3' );
 define( 'MOLLOM_TABLE', 'mollom' );
 
 define( 'MOLLOM_ERROR'   , 1000 );
@@ -450,7 +450,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
 			// update the manual moderation statistic
 			_mollom_set_plugincount(true);
-			return $ms; // return an empty array upon success
+			$ms[] = 'allsuccess'; // return all success on successfull feedback
 		} else {
 			$ms[] = 'feedbacksuccess';
 		}
@@ -459,10 +459,12 @@ function _mollom_send_feedback($action, $comment_ID) {
 		$ms[] = 'mollomerror';
 	}
 	else {
-		$ms[] = 'network';
-	}
+		$ms[] = 'networkfail';
+	} */
 	
-	return $ms; // return errors
+	$ms[] = 'allsuccess';
+	
+	return $ms; // return the result
 }
 
 /** 
@@ -475,53 +477,42 @@ function mollom_manage() {
 	}
 		
 	global $wpdb;
-	$ms = array();
+	$feedback = array();
 	$broken_comment = "";
 		
 	// moderation of a single item
 	if ($_GET['maction']) {
+		if (function_exists('check_admin_referer')) {
+			check_admin_referer('mollom-moderate-comment');
+		}
+
 		$mollom_private_key = get_option('mollom_private_key');
 		$mollom_public_key = get_option('mollom_public_key');
 		
 		$comment_ID = $_GET['c'];
 		
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
-			$ms[] = 'emptykeys';
-		} else {
-			if (function_exists('check_admin_referer')) {
-				check_admin_referer('mollom-moderate-comment');
-			}
-						
-			$ms = $ms + _mollom_send_feedback($action, $comment_ID);
-			if (count($ms) == 0) { // empty array = succes
-				$ms[] = 'allsuccess';
-			} else {
-				$broken_comment = $comment_ID;
-			}
+			$feedback[$comment_ID] = array('emptykeys');
+		} else {						
+			$feedback[$comment_ID] = _mollom_send_feedback($action, $comment_ID);
 		}
 	}
 	
 	// moderation of multiple items (bulk)
-	if (!empty($_REQUEST["delete_comments"])) {
+	if (!empty($_POST["delete_comments"])) {
+		if (function_exists('check_admin_referer')) {
+			check_admin_referer('mollom-bulk-moderation');
+		}
+		
 		$mollom_private_key = get_option('mollom_private_key');
 		$mollom_public_key = get_option('mollom_public_key');
 		
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
-			$ms[] = 'emptykeys';	
+			$feedback[] = array('emptykeys');	
 		} else {
-			foreach($_REQUEST["delete_comments"] as $comment) {
-				check_admin_referer('mollom-bulk-moderation');
-											
-				$ms = $ms + _mollom_send_feedback($action, $comment_ID);
-				
-				if(count($ms) > 0) {
-					$broken_comment = $comment_ID;
-					break;
-				}
-			}
-			
-			if (count($ms) == 0) {
-				$ms[] = 'allsuccess';
+			foreach($_POST["delete_comments"] as $comment_ID) {
+										
+				$feedback[$comment_ID] = _mollom_send_feedback($action, $comment_ID);
 			}
 		}
 	}
@@ -534,12 +525,12 @@ function mollom_manage() {
 	}
 	
 	// from here on: generate messages and overview page
-	$messages = array('allsuccess' => array('color' => 'aa0', 'text' => __('Comment feedback sent. All comments successfully deleted.')),
-					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Comment feedback sent but the comment could not be deleted.')),
-					  'networkfail' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
-					  'emptykeys' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
-					  'mollomerror' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Mollom could not process your request.')),
-					  'invalidaction' => array('color' => 'aa0', 'text' => __('Comment #' . $broken_comment .': Invalid mollom feedback action.'))); 
+	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment(s) were successfully deleted.')),
+					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Feedback sent to Mollom but the comment(s) could not be deleted.')),
+					  'networkfail' => array('color' => 'ff0000', 'text' => __('Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
+					  'emptykeys' => array('color' => 'ffcc00', 'text' => __('Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
+					  'mollomerror' => array('color' => 'ff0000', 'text' => __('Mollom could not process your request.')),
+					  'invalidaction' => array('color' => 'ffcc00', 'text' => __('Invalid mollom feedback action.'))); 
 	
 	// pagination code
 	$show_next = true;
@@ -631,10 +622,19 @@ function checkAll(form) {
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
 <p><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website of which you moderated '); echo $count_percentage; _e('% yourself.');  ?></p>
-<?php if(!empty($ms)) { foreach ( $ms as $m ) : ?>
-<p style="padding: .5em; background-color: #<?php echo $messages[$m]['color']; ?>; color: #fff; font-weight: bold;"><?php echo $messages[$m]['text']; ?></p>
-<?php endforeach; } ?>
-<?php if (!$comments) { ?>
+
+<?php if(!empty($feedback)) { 
+    foreach ( $feedback as $comment_ID => $comment ) :
+		foreach( $comment as $message) : 
+	?>
+<p style="padding: .5em; background-color: #<?php echo $messages[$message]['color']; ?>; color: #fff; font-weight: bold;"><?php echo 'Comment #' . $comment_ID . ' : ' . $messages[$message]['text']; ?></p>
+<?php 
+		endforeach;
+	endforeach; } 
+	?>
+
+<?php
+	if (!$comments) { ?>
 
 <p class="mollom-no-comments">There are no comments that can be moderated through Mollom.</p>
 
@@ -936,6 +936,8 @@ function _mollom_check_captcha($comment) {
 	
 		$mollom_sessionid = $_POST['mollom_sessionid'];
 		$solution = $_POST['mollom_solution'];
+		$mollom_image_session = $_POST['mollom_image_session'];
+		$mollom_audio_session = $_POST['mollom_audio_session'];
 
 		if ($solution == '') {
 			$message = 'You didn\'t fill out all the required fields, please try again';
@@ -950,10 +952,14 @@ function _mollom_check_captcha($comment) {
 			_mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
-				
-		$data = array('session_id' => $mollom_sessionid, 'solution' => $solution, 'author_ip' => _mollom_author_ip());
-			
-		$result = mollom('mollom.checkCaptcha', $data);
+		
+		// check captcha sessions and solution. If the image gives false, then try the audio session.
+		// Normally the mollom session id, the image session id and the audio session id are the same though no guarantees can be made
+		$data = array('session_id' => $mollom_image_session, 'solution' => $solution);
+		if (!($result = mollom('mollom.checkCaptcha', $data))) {
+			$data = array('session_id' => $mollom_audio_session, 'solution' => $solution);
+			$result = mollom('mollom.checkCaptcha', $data);
+		}
 		
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
@@ -1006,6 +1012,8 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 			wp_die($result, 'Something went wrong...');
 		}
 	}
+	
+	$mollom_audio_session = $result['session_id'];
 	$mollom_audio_captcha = $result['url'];
 
 	$result = mollom('mollom.getImageCaptcha', $data);	
@@ -1015,6 +1023,7 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 		}
 	}
 
+	$mollom_image_session = $result['session_id'];
 	$mollom_image_captcha = $result['url'];
 ?>
 
@@ -1092,6 +1101,8 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
     </object>
 	<p><small><a href="<?php echo $mollom_audio_captcha; ?>" title="mollom captcha">Download Audio Captcha</a></small></p>
 	<p><input type="text" length="15" maxlength="15" name="mollom_solution" /></p>
+	<input type="hidden" value="<?php echo $mollom_audio_session; ?>" name="mollom_audio_session" />
+	<input type="hidden" value="<?php echo $mollom_image_session; ?>" name="mollom_image_session" />
 	<input type="hidden" value="<?php echo $mollom_comment['mollom_sessionid']; ?>" name="mollom_sessionid" />
 	<input type="hidden" value="<?php echo $mollom_comment['comment_post_ID']; ?>" name="comment_post_ID" />
 	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
