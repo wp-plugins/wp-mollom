@@ -460,9 +460,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 	}
 	else {
 		$ms[] = 'networkfail';
-	} */
-	
-	$ms[] = 'allsuccess';
+	} 
 	
 	return $ms; // return the result
 }
@@ -479,6 +477,7 @@ function mollom_manage() {
 	global $wpdb;
 	$feedback = array();
 	$broken_comment = "";
+	
 		
 	// moderation of a single item
 	if ($_GET['maction']) {
@@ -510,9 +509,13 @@ function mollom_manage() {
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
 			$feedback[] = array('emptykeys');	
 		} else {
-			foreach($_POST["delete_comments"] as $comment_ID) {
-										
-				$feedback[$comment_ID] = _mollom_send_feedback($action, $comment_ID);
+			$multiple_failed = false;
+			foreach($_POST["delete_comments"] as $comment_ID) {			
+				 $result = _mollom_send_feedback($action, $comment_ID);
+				 if ($result[0] != 'allsuccess') {
+					$multiple_failed = true;
+				 }
+				 $feedback[$comment_ID] = $result;
 			}
 		}
 	}
@@ -578,6 +581,14 @@ function checkAll(form) {
  	  }
  	}
 }
+
+jQuery(document).ready(function() {
+	jQuery('#mollom_messages').hide();
+	jQuery('a#mollom_toggle').click(function() {
+		jQuery('#mollom_messages').slideToggle('slow');
+		return false;
+	});
+});
 //]]>
 </script>
 <style type="text/css">
@@ -616,6 +627,14 @@ function checkAll(form) {
 	border: 1px solid #ddd;
 }
 
+.mollom-report {
+}
+
+.mollom-report p, .mollom-report a, {
+	margin: 5px;
+	padding: 0;
+}
+
 </style>
 <div class="wrap">
 <h2>Mollom Manage</h2>
@@ -623,15 +642,40 @@ function checkAll(form) {
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
 <p><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website of which you moderated '); echo $count_percentage; _e('% yourself.');  ?></p>
 
-<?php if(!empty($feedback)) { 
-    foreach ( $feedback as $comment_ID => $comment ) :
+<div class="mollom-report">
+<?php 
+
+if(!empty($feedback)) {
+	if (count($feedback) == 1) {
+		$comment = current($feedback);
+		$comment_ID = key($feedback);
+		foreach ($comment as $message) :		
+?>
+<p style="padding: .5em; background-color: #<?php echo $messages[$message]['color']; ?>; color: #fff; font-weight: bold;"><?php echo 'Comment #' . $comment_ID . ' : ' . $messages[$message]['text']; ?></p>	
+<?php
+		endforeach;
+	} else {
+		if (!multiple_failed) { ?>
+	<p><strong><?php _e('Something went wrong while processing the feedback. <a href="#" id="mollom_toggle">Click to display a detailed report</a>.'); ?></strong></p>
+<?php 	} else { ?>
+	<p><strong><?php _e('All comments were succesfully moderated. <a href="#" id="mollom_toggle">Click to display a detailed report</a>.'); ?></strong></p>
+<?php 	} ?>
+
+<div id="mollom_messages">
+<?php
+	foreach ( $feedback as $comment_ID => $comment ) :
 		foreach( $comment as $message) : 
-	?>
+?>
 <p style="padding: .5em; background-color: #<?php echo $messages[$message]['color']; ?>; color: #fff; font-weight: bold;"><?php echo 'Comment #' . $comment_ID . ' : ' . $messages[$message]['text']; ?></p>
 <?php 
 		endforeach;
-	endforeach; } 
-	?>
+	endforeach;
+?>
+</div>
+
+<?php  } 
+} ?>
+</div>
 
 <?php
 	if (!$comments) { ?>
