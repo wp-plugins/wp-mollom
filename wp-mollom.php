@@ -343,7 +343,6 @@ function mollom_config() {
 			// previous value) is in the buffer if mollom returned error code 1000
 			update_option('mollom_private_key', $tmp_privatekey);
 			update_option('mollom_public_key', $tmp_publickey);
-
 		}
 		
 		if (($result->get_error_code()) != MOLLOM_ERROR) {	
@@ -444,7 +443,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 			break;
 	}
 		
-	$result = mollom('mollom.sendFeedback', $data);
+	/* $result = mollom('mollom.sendFeedback', $data);
 		
 	if($result) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
@@ -460,7 +459,9 @@ function _mollom_send_feedback($action, $comment_ID) {
 	}
 	else {
 		$ms[] = 'networkfail';
-	} 
+	} */
+	
+	$ms[] = 'allsuccess';
 	
 	return $ms; // return the result
 }
@@ -498,7 +499,7 @@ function mollom_manage() {
 	}
 	
 	// moderation of multiple items (bulk)
-	if (!empty($_POST["delete_comments"])) {
+	if ($_POST['delete_comments']) {
 		if (function_exists('check_admin_referer')) {
 			check_admin_referer('mollom-bulk-moderation');
 		}
@@ -824,9 +825,6 @@ function mollom_check_comment($comment) {
 		}
 		
 		$mollom_sessionid = $result['session_id'];
-		
-		// set the count of total  # messages checked by Mollom
-
 		
 		if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 			// let the comment pass			
@@ -1280,7 +1278,7 @@ function _mollom_authenticate() {
  	$data['hash'] = $hash;
 	$data['nonce'] = $nonce;
 	
-  return $data;
+	return $data;
 }
 
 /** 

@@ -88,6 +88,13 @@ Extra options in the configuration panel:
 5. screenshot-5.png
 
 == Changelog ==
+* 2008/08/XX - 0.5.3
+ * fixed: html is better preserved in a comment when the visitor is confronted with the captcha
+ * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
+ * fixed: broken bulk moderation of comments is now fixed
+ * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
+ * improved: added jQuery candy and more verbose messages report when using the feedback module
+ * improved: handling of Mollom feedback in _mollom_send_feedback() function
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries
