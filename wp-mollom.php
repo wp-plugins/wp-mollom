@@ -991,7 +991,7 @@ function _mollom_check_captcha($comment) {
 			$mollom_comment['author'] = $comment['comment_author'];
 			$mollom_comment['url'] = $comment['comment_author_url'];
 			$mollom_comment['email'] = $comment['comment_author_email'];
-			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
+			$mollom_comment['comment'] = $comment['comment_content'];
 
 			_mollom_show_captcha($message, $mollom_comment);
 			die();
@@ -1018,7 +1018,8 @@ function _mollom_check_captcha($comment) {
 		else if ($result) {
 			global $mollom_sessionid;
 			$mollom_sessionid = $result['session_id'];
-			add_action('comment_post', '_mollom_save_session', 1);
+			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
+			add_action('comment_post', '_mollom_save_session', 1);			
 			return $comment;
 		}
 		
