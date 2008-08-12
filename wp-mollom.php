@@ -443,7 +443,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 			break;
 	}
 		
-	/* $result = mollom('mollom.sendFeedback', $data);
+	$result = mollom('mollom.sendFeedback', $data);
 		
 	if($result) {
 		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
@@ -459,7 +459,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 	}
 	else {
 		$ms[] = 'networkfail';
-	} */
+	}
 	
 	$ms[] = 'allsuccess';
 	
@@ -499,7 +499,7 @@ function mollom_manage() {
 	}
 	
 	// moderation of multiple items (bulk)
-	if ($_POST['delete_comments']) {
+	if ($_POST['mollom-delete-comments']) {
 		if (function_exists('check_admin_referer')) {
 			check_admin_referer('mollom-bulk-moderation');
 		}
@@ -511,7 +511,7 @@ function mollom_manage() {
 			$feedback[] = array('emptykeys');	
 		} else {
 			$multiple_failed = false;
-			foreach($_POST["delete_comments"] as $comment_ID) {			
+			foreach($_POST["mollom-delete-comments"] as $comment_ID) {			
 				 $result = _mollom_send_feedback($action, $comment_ID);
 				 if ($result[0] != 'allsuccess') {
 					$multiple_failed = true;
@@ -735,7 +735,7 @@ if(!empty($feedback)) {
 	<?php } else { ?>
 	<li>
 	<?php } ?>	
-		<p class="mollom-comment-head"><input type="checkbox" name="delete_comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong></p>
+		<p class="mollom-comment-head"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong></p>
 		<p><strong><?php echo $comment->comment_title; ?></strong></p>
 		<p><?php echo $comment->comment_content; ?></p>
 		<p class="mollom-comment-metadata"><?php echo $comment_url; ?> | <?php echo $comment->comment_date; ?> |
@@ -1301,7 +1301,8 @@ function _mollom_author_ip() {
   	}
   
   	// If WP is run in a clustered environment
-  	if (array_key_exists('HTTP_X_CLUSTER_CLIENT_IP', $_SERVER)) {    	 $ip_address = $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'];
+  	if (array_key_exists('HTTP_X_CLUSTER_CLIENT_IP', $_SERVER)) {
+    	 $ip_address = $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'];
 	}
 	
 	return $ip_address;
