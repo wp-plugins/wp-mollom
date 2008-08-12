@@ -423,42 +423,66 @@ function _mollom_send_feedback($action, $comment_ID) {
 	$ms = array();
 	
 	$mollom_sessionid = $wpdb->get_var( $wpdb->prepare("SELECT mollom_session_ID FROM $mollom_table WHERE comment_ID = %d", $comment_ID) );
-		
+	
 	switch($action) {
 		case $action == "spam":
-			$data = array('feedback' => 'spam', 'session_id' => $mollom_sessionid);
-			break;
 		case $action == "profanity":
-			$data = array('feedback' => 'profanity', 'session_id' => $mollom_sessionid);
-			break;
 		case $action == "unwanted":
-			$data = array('feedback' => 'unwanted', 'session_id' => $mollom_sessionid);
-			break;
 		case $action == "lowquality":
-			$data = array('feedback' => 'low-quality', 'session_id' => $mollom_sessionid);
+			switch ($action) {
+				case $action == "spam":
+					$data = array('feedback' => 'profanity', 'session_id' => $mollom_sessionid);
+					break;
+				case $action == "profanity":
+					$data = array('feedback' => 'unwanted', 'session_id' => $mollom_sessionid);
+					break;
+				case $action == "unwanted":
+					$data = array('feedback' => 'spam', 'session_id' => $mollom_sessionid);
+					break;
+				case $action == "lowquality";
+					$data = array('feedback' => 'low-quality', 'session_id' => $mollom_sessionid);
+					break;
+			}
+			
+			$result = mollom('mollom.sendFeedback', $data);
+			
+			$result = false;
+				
+			if($result) {
+				if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
+					// update the manual moderation statistic
+					_mollom_set_plugincount(true);
+					$ms[] = 'allsuccess'; // return all success on successfull feedback
+				} else {
+					$ms[] = 'feedbacksuccess';
+				}
+			}		
+			else if (function_exists( 'is_wp_error' ) && is_wp_error( $result )) {
+				$ms[] = 'mollomerror';
+			}
+			else {
+				$ms[] = 'networkfail';
+			}
+			
+			break;
+		case $action == "approve":
+			if (wp_set_comment_status($comment_ID, 'approve')) {
+				$ms[] = 'approved';
+			} else {
+				$ms[] = 'approvefail';
+			}
+			break;
+		case $action == "unapprove":
+			if (wp_set_comment_status($comment_ID, 'hold')) {
+				$ms[] = 'unapproved';
+			} else {
+				$ms[] = 'approvefail';
+			}
 			break;
 		default:
 			$ms[] = 'invalidaction';
 			return $ms;
 			break;
-	}
-		
-	$result = mollom('mollom.sendFeedback', $data);
-		
-	if($result) {
-		if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
-			// update the manual moderation statistic
-			_mollom_set_plugincount(true);
-			$ms[] = 'allsuccess'; // return all success on successfull feedback
-		} else {
-			$ms[] = 'feedbacksuccess';
-		}
-	}		
-	else if (function_exists( 'is_wp_error' ) && is_wp_error( $result )) {
-		$ms[] = 'mollomerror';
-	}
-	else {
-		$ms[] = 'networkfail';
 	}
 	
 	return $ms; // return the result
@@ -479,7 +503,7 @@ function mollom_manage() {
 	
 		
 	// moderation of a single item
-	if ($_GET['maction']) {
+	if ($_GET['maction'] && !$_POST['mollom-delete-comments']) {
 		if (function_exists('check_admin_referer')) {
 			check_admin_referer('mollom-moderate-comment');
 		}
@@ -491,7 +515,8 @@ function mollom_manage() {
 		
 		if (empty($mollom_private_key) || empty($mollom_public_key)) {
 			$feedback[$comment_ID] = array('emptykeys');
-		} else {						
+		} else {
+			$action = $_GET['maction'];				
 			$feedback[$comment_ID] = _mollom_send_feedback($action, $comment_ID);
 		}
 	}
@@ -527,11 +552,14 @@ function mollom_manage() {
 	}
 	
 	// from here on: generate messages and overview page
-	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment(s) were successfully deleted.')),
-					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Feedback sent to Mollom but the comment(s) could not be deleted.')),
+	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
+					  'approved' => array('color' => '6bb200', 'text' => __('You flagged the comment as approved.')),
+					  'unapproved' => array('color' => '6bb200', 'text' => __('You flagged the comment as unapproved.')),
+					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Feedback sent to Mollom but the comment could not be deleted.')),
 					  'networkfail' => array('color' => 'ff0000', 'text' => __('Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
 					  'emptykeys' => array('color' => 'ffcc00', 'text' => __('Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
 					  'mollomerror' => array('color' => 'ff0000', 'text' => __('Mollom could not process your request.')),
+					  'approvefail' => array('color' => 'ff0000', 'text' => __('Wordpress could not (un)approve your comment.')),
 					  'invalidaction' => array('color' => 'ffcc00', 'text' => __('Invalid mollom feedback action.'))); 
 	
 	// pagination code
@@ -597,6 +625,10 @@ jQuery(document).ready(function() {
 	padding: 0;
 }
 
+.mollom-comment-list a {
+	text-decoration: none;
+}
+
 .mollom-comment-list li {
 	border-bottom: 1px solid #ddd;
 	margin: 0 0 15px 0;
@@ -606,7 +638,14 @@ jQuery(document).ready(function() {
 
 .mollom-comment-head {
 	background: #ddd;
-	font-size: 1.1em;
+	font-size: 1.0em;
+	padding: 3px 0;
+}
+
+.mollom-comment-head a {
+	color: #222;
+	text-decoration: none;
+	border-bottom: 1px dotted #000;
 }
 
 .mollom-comment-metadata {
@@ -714,18 +753,26 @@ if(!empty($feedback)) {
 </div>
 </div>
 <ul class="mollom-comment-list">
-	<?php foreach ($comments as $comment) {
+	<?php foreach ($comments as $comment_ID) {
+		global $comment, $post;
+		$comment = get_comment($comment_ID->comment_ID);
 	
 		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=spam', 'mollom-moderate-comment'));
 		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=profanity', 'mollom-moderate-comment'));
 		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
 		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unwanted', 'mollom-moderate-comment')); 
+		$approve = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=approve', 'mollom-moderate-comment')); 
+		$unapprove = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unapprove', 'mollom-moderate-comment')); 
+
 		
 		if (strlen($comment->comment_author_url) > 32) {
 			$comment_url = substr($comment->comment_author_url, 0, 32) . '...';
 		} else {
 			$comment_url = $comment->comment_author_url;
 		}
+		
+		$post = get_post($comment->comment_post_ID);
+		$post_link = get_comment_link();
 	?>
 	
 	<?php if ($comment->comment_approved == 0) { ?>
@@ -733,13 +780,15 @@ if(!empty($feedback)) {
 	<?php } else { ?>
 	<li>
 	<?php } ?>	
-		<p class="mollom-comment-head"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong></p>
+		<p class="mollom-comment-head"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong> on <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
 		<p><strong><?php echo $comment->comment_title; ?></strong></p>
 		<p><?php echo $comment->comment_content; ?></p>
-		<p class="mollom-comment-metadata"><?php echo $comment_url; ?> | <?php echo $comment->comment_date; ?> |
+		<p class="mollom-comment-metadata"><a href="<?php echo $comment_url; ?>"><?php echo $comment_url; ?></a> | <?php echo $comment->comment_date; ?> |
 		<?php echo $comment->comment_author_IP; ?></p>
 		<p class="mollom-action-links"><a href="<?php echo $spam; ?>">spam</a> | <a href="<?php echo $profanity; ?>">profanity</a>
-		| <a href="<?php echo $lowquality; ?>">low-quality</a> | <a href="<?php echo $unwanted; ?>">unwanted</a></p>
+		| <a href="<?php echo $lowquality; ?>">low-quality</a> | <a href="<?php echo $unwanted; ?>">unwanted</a>
+		| <a href="<?php echo $approve; ?>">approve</a> | <a href="<?php echo $unapprove; ?>">unapprove</a>
+		</p>
 	</li>
 	<?php } ?>
 </ul>

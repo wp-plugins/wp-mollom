@@ -93,8 +93,10 @@ Extra options in the configuration panel:
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
  * fixed: broken bulk moderation of comments is now fixed
  * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
- * improved: added jQuery candy and more verbose messages report when using the feedback module
+ * improved: added jQuery candy and more verbose messages report when using the Mollom Manage module
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
+ * added: approve and unapprove options in the Mollom Manage module
+ * added: link to the originating post in the Mollom Manage module
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries
