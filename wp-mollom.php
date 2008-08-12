@@ -461,8 +461,6 @@ function _mollom_send_feedback($action, $comment_ID) {
 		$ms[] = 'networkfail';
 	}
 	
-	$ms[] = 'allsuccess';
-	
 	return $ms; // return the result
 }
 
