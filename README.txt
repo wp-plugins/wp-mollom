@@ -41,10 +41,6 @@ Wordpress administration board, a new Mollom option will be shown. Through this 
 moderation tool. The default Wordpress moderation queue is still available, but usage of the Mollom moderation queue
 is encouraged.
 
-You can also this code: `<?php mollom_moderate_comment($comment->Comment_ID); ?>` into the comments.php template of
-your theme. Make sure the code is placed well within the comment loop! This code allows you to moderate comments directly
-of your theme.
-
 There are four basic types of moderation:
 
 * Spam: if the comment seems to be spam nonetheless.
@@ -52,7 +48,18 @@ There are four basic types of moderation:
 * Low Quality: if the comment isn't really consistent or doesn't make much sense
 * Unwanted: if the comment was i.e. posted by a particular person or bot.
 
-Moderation is encouraged as you will send feedback to mollom from which it will learn.
+Using these will send feedback to Mollom AND delete the comment permanently afterwards. You can also approve or 
+unapprove a comment. Using these functions, you can hide or show a comment from your website. These two options 
+don't send feedback to Mollom nor delete the comment. Use them if you are not sure what to do with a comment.
+
+If a CAPTCHA was shown and completed succesfully, this will also be indicated in the Mollom Manage module through
+differend header colors for the comment. Consult the legend for the meaning of each statuscolor.
+
+You can also this code: `<?php mollom_moderate_comment($comment->Comment_ID); ?>` into the comments.php template of
+your theme. Make sure the code is placed well within the comment loop! This code allows you to moderate comments directly
+of your theme.
+
+Moderation is encouraged in case of a false positive. Mollom will learn from the feedback you send through moderation.
 
 Extra options in the configuration panel:
 
@@ -74,9 +81,6 @@ Extra options in the configuration panel:
   existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
   through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned 
   to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
-* This plugin is not compatible with the current version of the WP OpenID plugin. There are known issues with the correct
-  handling of $_POST data. There is a developer version with a fix available through the <a href="http://diso-project.org/">
-  DiSo project</a> if you really want to provide OpenID access. You can download the package from <a href="http://diso.googlecode.com/svn/wordpress/wp-openid/">their repository</a>.
 * The plugin works with Wordpress 2.6 but doesn't yet support the SSL extensions released with Wordpress 2.6.
 
 == Screenshots ==
@@ -89,14 +93,16 @@ Extra options in the configuration panel:
 
 == Changelog ==
 * 2008/08/XX - 0.5.3
- * fixed: html is better preserved in a comment when the visitor is confronted with the captcha
+ * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
  * fixed: broken bulk moderation of comments is now fixed
  * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
- * improved: added jQuery candy and more verbose messages report when using the Mollom Manage module
+ * improved: more verbose status messages report when using the Mollom Manage module
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
  * added: approve and unapprove options in the Mollom Manage module
  * added: link to the originating post in the Mollom Manage module
+ * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module
+ * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries

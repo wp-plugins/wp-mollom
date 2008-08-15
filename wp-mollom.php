@@ -34,6 +34,7 @@ Version history:
 
 define( 'MOLLOM_API_VERSION', '1.0' );
 define( 'MOLLOM_VERSION', '0.5.3' );
+define( 'MOLLOM_USER_AGENT', 'WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
 define( 'MOLLOM_ERROR'   , 1000 );
@@ -60,6 +61,8 @@ function mollom_activate() {
 		$sql = "CREATE TABLE " . $mollom_table . " (
 				`comment_ID` BIGINT( 20 ) UNSIGNED NOT NULL DEFAULT '0',
 				`mollom_session_ID` VARCHAR( 40 ) NULL DEFAULT NULL,
+				`mollom_had_captcha` INT ( 1 ) NOT NULL DEFAULT '0',
+				`mollom_was_moderated` INT ( 1 ) NOT NULL DEFAULT '0',
 				UNIQUE (
 					`comment_ID` ,
 					`mollom_session_ID`
@@ -103,7 +106,8 @@ function mollom_activate() {
 		$version = MOLLOM_VERSION;
 		update_option('mollom_version', $version);
 		
-		// legacy code here: moving data from old to new data model
+		// legacy code here: 
+		// 1. moving data from old to new data model if necessary
 		$comments_table = $wpdb->prefix . 'comments';
 			
 		// only update if mollom_session_id still exists
@@ -127,7 +131,22 @@ function mollom_activate() {
 					}
 				}
 			}
-		}			
+		}
+
+		// 2. Add two extra coluns to the mollom table if not exist
+		$columns = array('mollom_had_captcha', 'mollom_was_moderated');
+		foreach($columns as $_column) {
+			$stat = true;
+			foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
+				if ($column == $_column) {
+					$stat = false;
+				}
+			}
+
+			if ($stat) {
+				$wpdb->query("ALTER TABLE $mollom_table ADD $_column TINYINT (1) NOT NULL DEFAULT 0");
+			}
+		}
 		// end of legacy code
 	}
 }
@@ -552,7 +571,7 @@ function mollom_manage() {
 	}
 	
 	// from here on: generate messages and overview page
-	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
+/*	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
 					  'approved' => array('color' => '6bb200', 'text' => __('You flagged the comment as approved.')),
 					  'unapproved' => array('color' => '6bb200', 'text' => __('You flagged the comment as unapproved.')),
 					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Feedback sent to Mollom but the comment could not be deleted.')),
@@ -561,7 +580,17 @@ function mollom_manage() {
 					  'mollomerror' => array('color' => 'ff0000', 'text' => __('Mollom could not process your request.')),
 					  'approvefail' => array('color' => 'ff0000', 'text' => __('Wordpress could not (un)approve your comment.')),
 					  'invalidaction' => array('color' => 'ffcc00', 'text' => __('Invalid mollom feedback action.'))); 
-	
+*/	
+	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
+					  'approved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as approved.')),
+					  'unapproved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as unapproved.')),
+					  'feedbacksuccess' => array('color' => 'f6d5cb', 'text' => __('Feedback sent to Mollom but the comment could not be deleted.')),
+					  'networkfail' => array('color' => 'f6d5cb', 'text' => __('Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
+					  'emptykeys' => array('color' => 'f6d5cb', 'text' => __('Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
+					  'mollomerror' => array('color' => 'f6d5cb', 'text' => __('Mollom could not process your request.')),
+					  'approvefail' => array('color' => 'f6d5cb', 'text' => __('Wordpress could not (un)approve your comment.')),
+					  'invalidaction' => array('color' => 'f6d5cb', 'text' => __('Invalid mollom feedback action.'))); 
+
 	// pagination code
 	$show_next = true;
 
@@ -586,7 +615,7 @@ function mollom_manage() {
 		$prevpage = $apage - 1;
 		$nextpage = $apage + 1;
 				
-		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.* FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
+		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
 
 		if ($limit >= $count) {
 			$show_next = false;
@@ -673,11 +702,28 @@ jQuery(document).ready(function() {
 	padding: 0;
 }
 
+.mollom-legend-clean {
+	background: #ddd;
+	border: 1px solid #ccc;
+	padding: 3px;
+}
+
+.mollom-legend-captcha {
+	background: #abc;
+	border: 1px solid #bcd;
+	padding: 3px;
+}
+
+.mollom-legend-unapproved {
+	background: #fdf8e4;
+	padding: 3px;
+}
+
 </style>
 <div class="wrap">
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
-<p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of errors is encouraged.'); ?></p>
+<p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of messages that, in your view, should have been blocked, is encouraged.'); ?></p>
 <p><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website of which you moderated '); echo $count_percentage; _e('% yourself.');  ?></p>
 
 <div class="mollom-report">
@@ -687,9 +733,9 @@ if(!empty($feedback)) {
 	if (count($feedback) == 1) {
 		$comment = current($feedback);
 		$comment_ID = key($feedback);
-		foreach ($comment as $message) :		
+		foreach ($comment as $message) :
 ?>
-<p style="padding: .5em; background-color: #<?php echo $messages[$message]['color']; ?>; color: #fff; font-weight: bold;"><?php echo 'Comment #' . $comment_ID . ' : ' . $messages[$message]['text']; ?></p>	
+<p style="padding: .5em; background-color: #<?php echo $messages[$message]['color']; ?>; color: #555; font-weight: bold;"><?php echo 'Comment #' . $comment_ID . ' : ' . $messages[$message]['text']; ?></p>	
 <?php
 		endforeach;
 	} else {
@@ -733,6 +779,8 @@ if(!empty($feedback)) {
 	}
 	mollom_nonce_field($mollom_nonce);
 ?>
+<small><em><?php _e("&raquo;&nbsp;Legend: "); ?></em><span class="mollom-legend-clean"><?php _e("Clean"); ?></span>&nbsp;<span class="mollom-legend-captcha"><?php _e("Captcha"); ?></span>
+&nbsp;<span class="mollom-legend-unapproved">Unapproved</span></small>
 <div class="tablenav">
 <div class="alignleft">
 <input type="checkbox" onclick="checkAll(document.getElementById('comments-form'));" />&nbsp;All
@@ -753,9 +801,9 @@ if(!empty($feedback)) {
 </div>
 </div>
 <ul class="mollom-comment-list">
-	<?php foreach ($comments as $comment_ID) {
+	<?php foreach ($comments as $_comment) {
 		global $comment, $post;
-		$comment = get_comment($comment_ID->comment_ID);
+		$comment = get_comment($_comment->comment_ID);
 	
 		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=spam', 'mollom-moderate-comment'));
 		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=profanity', 'mollom-moderate-comment'));
@@ -763,24 +811,18 @@ if(!empty($feedback)) {
 		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unwanted', 'mollom-moderate-comment')); 
 		$approve = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=approve', 'mollom-moderate-comment')); 
 		$unapprove = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unapprove', 'mollom-moderate-comment')); 
-
 		
-		if (strlen($comment->comment_author_url) > 32) {
-			$comment_url = substr($comment->comment_author_url, 0, 32) . '...';
-		} else {
-			$comment_url = $comment->comment_author_url;
-		}
+		(strlen($comment->comment_author_url) > 32) ? $comment_url = substr($comment->comment_author_url, 0, 32) . '...' : $comment_url = $comment->comment_author_url;
+		($_comment->mollom_had_captcha == 1) ? $header_style = "#abc" : $header_style = "#ddd";
+		($comment->comment_approved != 1) ? $item_style = 'style="background:#fdf8e4;"' : $item_style = "";
 		
 		$post = get_post($comment->comment_post_ID);
 		$post_link = get_comment_link();
+		
 	?>
-	
-	<?php if ($comment->comment_approved == 0) { ?>
-	<li style="background:#fdf8e4;">
-	<?php } else { ?>
-	<li>
-	<?php } ?>	
-		<p class="mollom-comment-head"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong> on <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
+
+	<li <?php echo $item_style; ?>>
+		<p class="mollom-comment-head" style="background:<?php echo $header_style; ?>;"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong> on <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
 		<p><strong><?php echo $comment->comment_title; ?></strong></p>
 		<p><?php echo $comment->comment_content; ?></p>
 		<p class="mollom-comment-metadata"><a href="<?php echo $comment_url; ?>"><?php echo $comment_url; ?></a> | <?php echo $comment->comment_date; ?> |
@@ -886,8 +928,8 @@ function mollom_check_comment($comment) {
 		}
 	
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
-			// show a CAPTCHA if unsure and set the count of blocked messages
-			_mollom_set_plugincount();			
+			// show a CAPTCHA and and set the count of blocked messages
+			_mollom_set_plugincount();	
 			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
 									'mollom_sessionid' => $result['session_id'],
 									'author' => $comment['comment_author'],
@@ -999,9 +1041,9 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 
 /** 
 * _mollom_save_session
-* save the session ID in the database in MOLLOM_TABLE
-* @param integer $comment_ID the id of the comment for which to save the session
-* @return integer The id of the comment for which to save the session
+* save the session ID for this comment in the database in MOLLOM_TABLE
+* @param integer $comment_ID the id of the comment
+* @return integer The id of the comment
 */
 function _mollom_save_session($comment_ID) {
 	global $wpdb, $mollom_sessionid;
@@ -1010,6 +1052,21 @@ function _mollom_save_session($comment_ID) {
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
 	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment_ID, $mollom_sessionid) );
 
+	return $comment_ID;
+}
+
+/**
+* _mollom_had_captcha
+* save wether or not a CAPTCHA was shown for this comment
+* @param integer $comment_ID the id of the comment
+* @return integer The id of the comment
+*/
+function _mollom_save_had_captcha($comment_ID) {
+	global $wpdb, $mollom_sessionid;
+	
+	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
+	$result = $wpdb->query( $wppdb->prepare("UPDATE $mollom_table SET(mollom_had_captcha) VALUES(1) WHERE comment_ID = %d", $comment_ID));
+	
 	return $comment_ID;
 }
 
@@ -1064,7 +1121,8 @@ function _mollom_check_captcha($comment) {
 			global $mollom_sessionid;
 			$mollom_sessionid = $result['session_id'];
 			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
-			add_action('comment_post', '_mollom_save_session', 1);			
+			add_action('comment_post', '_mollom_save_session', 1);
+			add_action('comment_post', '_mollom_save_had_captcha', 1);
 			return $comment;
 		}
 		
@@ -1214,9 +1272,11 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 * @param array $data the arguments the called API function you want to pass
 * @return mixed Either a WP_Error on error or a mixed return depending on the called API function
 */
-function mollom($method, $data = array()) {	
+function mollom($method, $data = array()) {
+	$user_agent = MOLLOM_USER_AGENT;
 	if (get_option('mollom_servers') == NULL) {
 		$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);
+		$mollom_client->useragent = $user_agent;
 		
 		if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
 				// Something went wrong! Return the error
@@ -1234,6 +1294,7 @@ function mollom($method, $data = array()) {
 	
 	foreach ($servers as $server) {
 		$mollom_client = new IXR_Client($server . '/' . MOLLOM_API_VERSION);
+		$mollom_client->useragent = $user_agent;
 
 		$result = $mollom_client->query($method, $data + _mollom_authenticate());
 	
