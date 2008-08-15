@@ -571,16 +571,6 @@ function mollom_manage() {
 	}
 	
 	// from here on: generate messages and overview page
-/*	$messages = array('allsuccess' => array('color' => '6bb200', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
-					  'approved' => array('color' => '6bb200', 'text' => __('You flagged the comment as approved.')),
-					  'unapproved' => array('color' => '6bb200', 'text' => __('You flagged the comment as unapproved.')),
-					  'feedbacksuccess' => array('color' => 'aa0', 'text' => __('Feedback sent to Mollom but the comment could not be deleted.')),
-					  'networkfail' => array('color' => 'ff0000', 'text' => __('Mollom was unreachable. Maybe the service is down or there is a network disruption.')),
-					  'emptykeys' => array('color' => 'ffcc00', 'text' => __('Could not perform action because the Mollom plugin was not configured. Please configure it first.')),
-					  'mollomerror' => array('color' => 'ff0000', 'text' => __('Mollom could not process your request.')),
-					  'approvefail' => array('color' => 'ff0000', 'text' => __('Wordpress could not (un)approve your comment.')),
-					  'invalidaction' => array('color' => 'ffcc00', 'text' => __('Invalid mollom feedback action.'))); 
-*/	
 	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
 					  'approved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as approved.')),
 					  'unapproved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as unapproved.')),
@@ -825,7 +815,11 @@ if(!empty($feedback)) {
 		<p class="mollom-comment-head" style="background:<?php echo $header_style; ?>;"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong> on <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
 		<p><strong><?php echo $comment->comment_title; ?></strong></p>
 		<p><?php echo $comment->comment_content; ?></p>
-		<p class="mollom-comment-metadata"><a href="<?php echo $comment_url; ?>"><?php echo $comment_url; ?></a> | <?php echo $comment->comment_date; ?> |
+		<p class="mollom-comment-metadata">
+		<?php if ($comment_url != "") { ?>
+			<a href="<?php echo $comment_url; ?>"><?php echo $comment_url; ?></a> |
+		<?php } ?>
+		<?php echo $comment->comment_date; ?> |
 		<?php echo $comment->comment_author_IP; ?></p>
 		<p class="mollom-action-links"><a href="<?php echo $spam; ?>">spam</a> | <a href="<?php echo $profanity; ?>">profanity</a>
 		| <a href="<?php echo $lowquality; ?>">low-quality</a> | <a href="<?php echo $unwanted; ?>">unwanted</a>
