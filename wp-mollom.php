@@ -586,6 +586,9 @@ function mollom_manage() {
 		$count_percentage = round(((get_option('mollom_count_moderated') / get_option('mollom_count')) * 100), 2);
 	}
 	
+	$count_captcha = _mollom_get_captchacount();
+	$count_captcha = round((($count_captcha / get_option('mollom_count')) * 100), 2);
+	
 	// from here on: generate messages and overview page
 	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
 					  'approved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as approved.')),
@@ -730,7 +733,12 @@ jQuery(document).ready(function() {
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of messages that, in your view, should have been blocked, is encouraged.'); ?></p>
-<p><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website of which you moderated '); echo $count_percentage; _e('% yourself.');  ?></p>
+<p><?php _e('here are some statistics:')?></p>
+<ul>
+<li><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website'); ?></li>
+<li><?php echo $count_captcha; _e('% had a CAPTCHA shown')?></li>
+<li><?php _e('You moderated '); echo $count_percentage; _e('% yourself.');  ?></li>
+</ul>
 
 <div class="mollom-report">
 <?php 
