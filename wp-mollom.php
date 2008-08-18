@@ -231,6 +231,20 @@ function _mollom_get_plugincount() {
 	return $count;
 }
 
+/**
+* _mollom_get_captchacount
+* get the number of comments for which a captcha was shown and passed
+* @return integer The number of comments for which a captcha was shown and passed
+*/
+function _mollom_get_captchacount() {
+	global $wpdb;
+
+	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;	
+	$result = $wpdb->query("SELECT COUNT(*) FROM $mollom_table WHERE mollom_had_captcha = 1");
+	
+	return $result;
+}
+
 /** 
 * mollom_show_count
 * show the amount of blocked items 
@@ -464,8 +478,6 @@ function _mollom_send_feedback($action, $comment_ID) {
 			}
 			
 			$result = mollom('mollom.sendFeedback', $data);
-			
-			$result = false;
 				
 			if($result) {
 				if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
@@ -554,18 +566,22 @@ function mollom_manage() {
 		} else {
 			$multiple_failed = false;
 			foreach($_POST["mollom-delete-comments"] as $comment_ID) {			
-				 $result = _mollom_send_feedback($action, $comment_ID);
-				 if ($result[0] != 'allsuccess') {
-					$multiple_failed = true;
-				 }
-				 $feedback[$comment_ID] = $result;
+				$result = _mollom_send_feedback($action, $comment_ID);
+				switch ($result[0]) {
+					case 'allsuccess':
+					case 'unapprove':
+					case 'approve':
+						$multipe_failed = false;
+					default:
+						$multiple_failed = true;
+				}
+				$feedback[$comment_ID] = $result;
 			}
 		}
 	}
 	
 	// mollom local statistics
 	$count_percentage = 0;
-	
 	if (get_option('mollom_count_moderated') > 0) {
 		$count_percentage = round(((get_option('mollom_count_moderated') / get_option('mollom_count')) * 100), 2);
 	}
@@ -783,10 +799,10 @@ if(!empty($feedback)) {
 <a href="edit-comments.php?page=mollommanage">Start</a>
 <?php
 	if($apage != 0) { ?>
-	<a href="edit-comments.php?page=mollommanage&apage=<?php echo $prevpage; ?>">&laquo;Previous</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>">&laquo;Previous</a>
 <?php }
 	if($show_next) { ?>
-	<a href="edit-comments.php?page=mollommanage&apage=<?php echo $nextpage; ?>">Next&raquo;</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>">Next&raquo;</a>
 <?php } ?>
 </div>
 </div>
@@ -1050,21 +1066,6 @@ function _mollom_save_session($comment_ID) {
 }
 
 /**
-* _mollom_had_captcha
-* save wether or not a CAPTCHA was shown for this comment
-* @param integer $comment_ID the id of the comment
-* @return integer The id of the comment
-*/
-function _mollom_save_had_captcha($comment_ID) {
-	global $wpdb, $mollom_sessionid;
-	
-	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	$result = $wpdb->query( $wppdb->prepare("UPDATE $mollom_table SET(mollom_had_captcha) VALUES(1) WHERE comment_ID = %d", $comment_ID));
-	
-	return $comment_ID;
-}
-
-/**
 * _mollom_check_captcha 
 * Check the answer of the CAPTCHA presented by Mollom. Called through the pre_process_hook as a callback.
 * @param array $comment the comment array passed by the pre_process hook 
@@ -1113,7 +1114,7 @@ function _mollom_check_captcha($comment) {
 		// if correct
 		else if ($result) {
 			global $mollom_sessionid;
-			$mollom_sessionid = $result['session_id'];
+			$mollom_sessionid = $_POST['mollom_sessionid'];
 			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
 			add_action('comment_post', '_mollom_save_session', 1);
 			add_action('comment_post', '_mollom_save_had_captcha', 1);
@@ -1257,6 +1258,21 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 </html>
 
 <?php
+}
+
+/**
+* _mollom_had_captcha
+* save wether or not a CAPTCHA was shown for this comment
+* @param integer $comment_ID the id of the comment
+* @return integer The id of the comment
+*/
+function _mollom_save_had_captcha($comment_ID) {
+	global $wpdb, $mollom_sessionid;
+	
+	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
+	$result = $wpdb->query( $wpdb->prepare("UPDATE $mollom_table SET mollom_had_captcha = 1 WHERE comment_ID = %d", $comment_ID));
+	
+	return $comment_ID;
 }
 
 /** 
