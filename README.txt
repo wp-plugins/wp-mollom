@@ -97,12 +97,14 @@ Extra options in the configuration panel:
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
  * fixed: broken bulk moderation of comments is now fixed
  * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
+ * fixed: the session_id is now passed correctly to _save_session() after the captcha is checked.
  * improved: more verbose status messages report when using the Mollom Manage module
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
  * added: approve and unapprove options in the Mollom Manage module
  * added: link to the originating post in the Mollom Manage module
  * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module
  * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API
+ * added: a % count of all comments that had a captcha (unsure) completed successfully.
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries
