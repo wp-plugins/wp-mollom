@@ -87,8 +87,12 @@ function mollom_activate() {
 		add_option('mollom_public_key', '');
 	if(!get_option('mollom_servers'))
 		add_option('mollom_servers', NULL);
-	if(!get_option('mollom_count'))
-		add_option('mollom_count', 0);
+	if(!get_option('mollom_ham_count'))
+		add_option('mollom_ham_count', 0);
+	if(!get_option('mollom_spam_count'))
+		add_option('mollom_spam_count', 0);
+	if(!get_option('mollom_unsure_count'))
+		add_option('mollom_unsure_count', 0);
 	if(!get_option('mollom_count_moderated'))
 		add_option('mollom_count_moderated', 0);
 	if(!get_option('mollom_site_policy'))
@@ -147,6 +151,12 @@ function mollom_activate() {
 				$wpdb->query("ALTER TABLE $mollom_table ADD $_column TINYINT (1) NOT NULL DEFAULT 0");
 			}
 		}
+		
+		// 3. Update Mollom count: move data to mollom_spam_count and remove it
+		$spam_count = get_option('mollom_count');
+		update_option('mollom_spam_count', $spam_count);
+		delete_option('mollom_count');
+		
 		// end of legacy code
 	}
 }
@@ -166,6 +176,9 @@ function mollom_deactivate() {
 		delete_option('mollom_servers');
 		delete_option('mollom_version');
 		delete_option('mollom_count');
+		delete_option('mollom_ham_count');
+		delete_option('mollom_spam_count');
+		delete_option('mollom_unsure_count');
 		delete_option('mollom_count_moderated');
 		delete_option('mollom_reverseproxy');
 		delete_option('mollom_site_policy');
@@ -209,11 +222,26 @@ add_action('admin_menu','mollom_manage_page');
 * sets the count of comments asserted as spam or unsure
 * @param boolean $moderated if true, set the count of the manually moderated comments (used in sendFeedback)
 */
-function _mollom_set_plugincount($moderated = false) {
-	$count = get_option('mollom_count');
-	$count++;
-	update_option('mollom_count', $count);
-	
+function _mollom_set_plugincount($action, $moderated = false) {
+	switch ($action) {
+		default:
+		case "spam":
+			$count = get_option('mollom_spam_count');
+			$count++;
+			update_option('mollom_spom_count', $count);
+			break;
+		case "ham":
+			$count = get_option('mollom_ham_count');
+			$count++;
+			update_option('mollom_ham_count', $count);
+			break;
+		case "unsure":
+			$count = get_option('mollom_unsure_count');
+			$count++;
+			update_option('mollom_count', $count);
+			break;
+	}
+		
 	if ($moderated) {
 		$count_moderated = get_option('mollom_count_moderated');
 		$count_moderated++;
@@ -482,7 +510,7 @@ function _mollom_send_feedback($action, $comment_ID) {
 			if($result) {
 				if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
 					// update the manual moderation statistic
-					_mollom_set_plugincount(true);
+					_mollom_set_plugincount("spam", true);
 					$ms[] = 'allsuccess'; // return all success on successfull feedback
 				} else {
 					$ms[] = 'feedbacksuccess';
@@ -581,13 +609,19 @@ function mollom_manage() {
 	}
 	
 	// mollom local statistics
-	$count_percentage = 0;
+	$counts = array(
+		'spam_count' => get_option('mollom_spam_count'),
+		'ham_count' => get_option('mollom_ham_count'),
+		'unsure_count' => get_option('mollom_unsure_count'),
+	);
+	
+	$moderated_percentage = 0;
 	if (get_option('mollom_count_moderated') > 0) {
-		$count_percentage = round(((get_option('mollom_count_moderated') / get_option('mollom_count')) * 100), 2);
+		$moderated_percentage = round((get_option('mollom_count_moderated') / $total_count * 100), 2);
 	}
 	
-	$count_captcha = _mollom_get_captchacount();
-	$count_captcha = round((($count_captcha / get_option('mollom_count')) * 100), 2);
+	$captcha_count = _mollom_get_captchacount();
+	$captcha_percentage = round(($captcha_count / $total_count * 100), 2);
 	
 	// from here on: generate messages and overview page
 	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
@@ -648,9 +682,16 @@ function checkAll(form) {
 }
 
 jQuery(document).ready(function() {
-	jQuery('#mollom_messages').hide();
-	jQuery('a#mollom_toggle').click(function() {
-		jQuery('#mollom_messages').slideToggle('slow');
+	jQuery('#mollom-messages').hide();
+	jQuery('#mollom-statistics').hide();
+	
+	jQuery('a#mollom-toggle').click(function() {
+		jQuery('#mollom-messages').slideToggle('slow');
+		return false;
+	});
+	
+	jQuery('a#mollom-stat-toggle').click(function() {
+		jQuery('#mollom-statistics').slideToggle('slow');
 		return false;
 	});
 });
@@ -728,17 +769,27 @@ jQuery(document).ready(function() {
 	padding: 3px;
 }
 
+#mollom-statistics {
+	border: 1px solid #AAA;
+	margin: 4px;
+	padding: 5px;
+}
+
 </style>
 <div class="wrap">
 <h2>Mollom Manage</h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of messages that, in your view, should have been blocked, is encouraged.'); ?></p>
-<p><?php _e('here are some statistics:')?></p>
-<ul>
-<li><?php _e('So far, Mollom has blocked or moderated '); echo get_option('mollom_count'); _e(' messages on your website'); ?></li>
-<li><?php echo $count_captcha; _e('% had a CAPTCHA shown')?></li>
-<li><?php _e('You moderated '); echo $count_percentage; _e('% yourself.');  ?></li>
-</ul>
+<p><?php _e('Take a loot at <a href="#" id="mollom-stat-toggle">some statistics</a>')?></p>
+<div id="mollom-statistics">
+	<p><?php _e('So far, <strong>'); echo $total_count; _e(' comments and trackbacks</strong> were registered by WP Mollom')?></p>
+	<ul>
+		<li><?php echo $ham_count; _e(' were recognized as <em>ham</em>.');?></li>
+		<li><?php echo $spam_count; _e(' were recognized as <em>spam</em>.');?></li>
+		<li><?php echo $unsure_count; _e(' or '); echo $captcha_percentage; _e('% were recognized as <em>unsure</em>.');?></li>
+		<li><?php echo $moderated_percentage; _e('% of all messages had to be manually <em>moderated</em> by you.')?></li>
+	</ul>
+</div>
 
 <div class="mollom-report">
 <?php 
@@ -754,12 +805,12 @@ if(!empty($feedback)) {
 		endforeach;
 	} else {
 		if (!multiple_failed) { ?>
-	<p><strong><?php _e('Something went wrong while processing the feedback. <a href="#" id="mollom_toggle">Click to display a detailed report</a>.'); ?></strong></p>
+	<p><strong><?php _e('Something went wrong while processing the feedback. <a href="#" id="mollom-toggle">Click to display a detailed report</a>.'); ?></strong></p>
 <?php 	} else { ?>
-	<p><strong><?php _e('All comments were succesfully moderated. <a href="#" id="mollom_toggle">Click to display a detailed report</a>.'); ?></strong></p>
+	<p><strong><?php _e('All comments were succesfully moderated. <a href="#" id="mollom-toggle">Click to display a detailed report</a>.'); ?></strong></p>
 <?php 	} ?>
 
-<div id="mollom_messages">
+<div id="mollom-messages">
 <?php
 	foreach ( $feedback as $comment_ID => $comment ) :
 		foreach( $comment as $message) : 
@@ -935,19 +986,20 @@ function mollom_check_comment($comment) {
 		
 		if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 			// let the comment pass			
+			_mollom_set_plugincount("ham");
 			add_action('comment_post', '_mollom_save_session', 1);
 			return $comment;
 		}
 
 		elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 			// kill the process here because of spam detection and set the count of blocked messages
-			_mollom_set_plugincount();			
+			_mollom_set_plugincount("spam");			
 			wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.'));
 		}
 	
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 			// show a CAPTCHA and and set the count of blocked messages
-			_mollom_set_plugincount();	
+			_mollom_set_plugincount("unsure");	
 			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
 									'mollom_sessionid' => $result['session_id'],
 									'author' => $comment['comment_author'],
