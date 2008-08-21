@@ -151,12 +151,7 @@ function mollom_activate() {
 				$wpdb->query("ALTER TABLE $mollom_table ADD $_column TINYINT (1) NOT NULL DEFAULT 0");
 			}
 		}
-		
-		// 3. Update Mollom count: move data to mollom_spam_count and remove it
-		$spam_count = get_option('mollom_count');
-		update_option('mollom_spam_count', $spam_count);
-		delete_option('mollom_count');
-		
+				
 		// end of legacy code
 	}
 }
@@ -250,12 +245,12 @@ function _mollom_set_plugincount($action, $moderated = false) {
 }
 
 /** 
-* _mollom_get_plugincount
+* _mollom_get_spamcount
 * get the amount of blocked items 
 * @return integer The amount of blocked items
 */
-function _mollom_get_plugincount() {
-	$count = get_option('mollom_count');
+function _mollom_get_spamcount() {
+	$count = get_option('mollom_spam_count');
 	return $count;
 }
 
@@ -629,7 +624,7 @@ function mollom_manage() {
 	if (get_option('mollom_count_moderated') > 0) {
 		$count_percentage['moderated'] = round((get_option('mollom_count_moderated') / $total_count * 100), 2);
 	}
-		
+	
 	// from here on: generate messages and overview page
 	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
 					  'approved' => array('color' => 'd2f2d7', 'text' => __('You flagged the comment as approved.')),
@@ -777,33 +772,21 @@ jQuery(document).ready(function() {
 }
 
 #mollom-statistics {
-	border: 1px solid #AAA;
-	margin: 0 0 5px 0;
-	padding: 5px;
+	margin: 5px;
 	font-size: 0.9em;
 }
 
 #mollom-statistics ul {
 	list-style: none;
-	border-left: 2px solid #ddd;
-}
-
-#mollom-statistics li {
+	border-left: 5px solid #ddd;
 	margin: 0;
 	padding: 0;
 }
 
-span.mollom-graph {
-	width: 800px;
-	height: 15px;
+#mollom-statistics ul li {
+	margin: 0 0 0 5px;
+	padding: 0;
 }
-
-span.spam {
-	background: #aaa;
-	width: <?php echo ($count_percentage['spam'] * 100); ?>px;	
-	height: 15px;
-}
-
 </style>
 <div class="wrap">
 <h2>Mollom Manage</h2>
@@ -814,12 +797,11 @@ span.spam {
 <div id="mollom-statistics">
 	<p><?php _e('So far, <strong>'); echo $total_count; _e(' comments and trackbacks</strong> were registered by WP Mollom. This is a breakdown:')?></p>
 	<ul id="mollom-statistics-breakdown">
-		<li><?php _e('Cleared as <em>ham</em>: '); echo $count_nominal['ham']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
-		<li><?php _e('Blocked as <em>spam</em>: '); echo $count_nominal['spam']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
-		<li><?php _e('Mollom was <em>unsure</em> about and showed a CAPTCHA: '); echo $count_nominal['unsure']; _e(' or '); echo $count_percentage['unsure']; _e('%'); ?></li>
+		<li><?php _e('Cleared as <em>ham</em> : '); echo $count_nominal['ham']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
+		<li><?php _e('Blocked as <em>spam</em> : '); echo $count_nominal['spam']; _e(' or '); echo $count_percentage['spam']; _e('%'); ?></li>
+		<li><?php _e('Mollom was <em>unsure</em> about and showed a CAPTCHA : '); echo $count_nominal['unsure']; _e(' or '); echo $count_percentage['unsure']; _e('%'); ?></li>
 		<li><?php echo $count_nominal['moderated']; _e(' or '); echo $count_percentage['moderated']; _e('% of all messages were manually <em>moderated</em> by you.'); ?></li>
 	</ul>
-	<span class="mollom-graph"><span class="spam">spam</span><span class="ham">ham</span><span class="unsure">unsure</span></span>
 </div>
 
 <div class="mollom-report">
@@ -875,8 +857,8 @@ if(!empty($feedback)) {
 	}
 	mollom_nonce_field($mollom_nonce);
 ?>
-<small><em><?php _e("&raquo;&nbsp;Legend: "); ?></em><span class="mollom-legend-clean"><?php _e("Clean"); ?></span>&nbsp;<span class="mollom-legend-captcha"><?php _e("Captcha"); ?></span>
-&nbsp;<span class="mollom-legend-unapproved">Unapproved</span></small>
+<p><small><em><?php _e("&raquo;&nbsp;Legend: "); ?></em><span class="mollom-legend-clean"><?php _e("Clean"); ?></span>&nbsp;<span class="mollom-legend-captcha"><?php _e("Captcha"); ?></span>
+&nbsp;<span class="mollom-legend-unapproved">Unapproved</span></small></p>
 <div class="tablenav">
 <div class="alignleft">
 <input type="checkbox" onclick="checkAll(document.getElementById('comments-form'));" />&nbsp;All
