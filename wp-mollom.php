@@ -154,9 +154,7 @@ function mollom_activate() {
 		
 		// 3. Update Mollom count: move data to mollom_spam_count and remove it
 		$spam_count = get_option('mollom_count');
-		$spam_count = $spam_count - _mollom_get_captchacount();
 		update_option('mollom_spam_count', $spam_count);
-		update_option('mollom_unsure_count', _mollom_get_captchacount());
 		delete_option('mollom_count');
 		
 		// end of legacy code
@@ -240,7 +238,7 @@ function _mollom_set_plugincount($action, $moderated = false) {
 		case "unsure":
 			$count = get_option('mollom_unsure_count');
 			$count++;
-			update_option('mollom_count', $count);
+			update_option('mollom_unsure_count', $count);
 			break;
 	}
 		
@@ -611,25 +609,25 @@ function mollom_manage() {
 	}
 	
 	// Generate local statistics
-	$counts_nominal = array(
+	$count_nominal = array(
 		'spam' => get_option('mollom_spam_count'),
 		'ham' => get_option('mollom_ham_count'),
 		'unsure' => get_option('mollom_unsure_count'),
 	);
 	
 	$total_count = 0;
-	foreach($counts as $count) {
+	foreach($count_nominal as $count) {
 		$total_count += $count;
 	}
 	
-	$counts_percentage = array();
-	foreach($counts_nominal as $key => $count) {
-		$counts_percentage[$key] = round($count / $total_count * 100), 2);
+	$count_percentage = array();
+	foreach($count_nominal as $key => $count) {
+		$count_percentage[$key] = round(($count / $total_count * 100), 2);
 	}	
 	
-	$counts_nominal['moderated'] = get_option('mollom_count_moderated');
+	$count_nominal['moderated'] = get_option('mollom_count_moderated');
 	if (get_option('mollom_count_moderated') > 0) {
-		$counts_percentage['moderated'] = round((get_option('mollom_count_moderated') / $total_count * 100), 2);
+		$count_percentage['moderated'] = round((get_option('mollom_count_moderated') / $total_count * 100), 2);
 	}
 		
 	// from here on: generate messages and overview page
@@ -780,8 +778,30 @@ jQuery(document).ready(function() {
 
 #mollom-statistics {
 	border: 1px solid #AAA;
-	margin: 4px;
+	margin: 0 0 5px 0;
 	padding: 5px;
+	font-size: 0.9em;
+}
+
+#mollom-statistics ul {
+	list-style: none;
+	border-left: 2px solid #ddd;
+}
+
+#mollom-statistics li {
+	margin: 0;
+	padding: 0;
+}
+
+span.mollom-graph {
+	width: 800px;
+	height: 15px;
+}
+
+span.spam {
+	background: #aaa;
+	width: <?php echo ($count_percentage['spam'] * 100); ?>px;	
+	height: 15px;
 }
 
 </style>
@@ -794,11 +814,12 @@ jQuery(document).ready(function() {
 <div id="mollom-statistics">
 	<p><?php _e('So far, <strong>'); echo $total_count; _e(' comments and trackbacks</strong> were registered by WP Mollom. This is a breakdown:')?></p>
 	<ul id="mollom-statistics-breakdown">
-		<li><?php _e('Cleared as <em>ham</em>: '); echo $count_nominal['ham']; _e(' or '); echo $count_percentage['ham']; ?></li>
-		<li><?php _e('Blocked as <em>spam</em>: '); echo $count_nominal['spam']; _e(' or '); echo $count_percentage['ham']; ?></li>
-		<li><?php _e('Mollom was <em>unsure</em> about and showed a CAPTCHA: '); echo $count_nominal['unsure']; _e(' or '); echo $count_percentage['unsure']; ?></li>
-		<li><?php echo $count_nominal['moderated']; _e(' or '); echo $count_percentage['moderated']; _e('% of all messages were manually <em>moderated</em> by you.')?></li>
+		<li><?php _e('Cleared as <em>ham</em>: '); echo $count_nominal['ham']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
+		<li><?php _e('Blocked as <em>spam</em>: '); echo $count_nominal['spam']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
+		<li><?php _e('Mollom was <em>unsure</em> about and showed a CAPTCHA: '); echo $count_nominal['unsure']; _e(' or '); echo $count_percentage['unsure']; _e('%'); ?></li>
+		<li><?php echo $count_nominal['moderated']; _e(' or '); echo $count_percentage['moderated']; _e('% of all messages were manually <em>moderated</em> by you.'); ?></li>
 	</ul>
+	<span class="mollom-graph"><span class="spam">spam</span><span class="ham">ham</span><span class="unsure">unsure</span></span>
 </div>
 
 <div class="mollom-report">
