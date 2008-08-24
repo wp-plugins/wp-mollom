@@ -16,6 +16,7 @@ Version history:
 - 28 juni 2008: second public release
 - 1 juli 2008: small bugfix release
 - 20 juli 2008: small bugfix release
+- 24 augustus 2008: third public release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -33,8 +34,8 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.6.0-dev' );
-define( 'MOLLOM_USER_AGENT', 'WP Mollom for Wordpress ' . MOLLOM_VERSION );
+define( 'MOLLOM_VERSION', '0.6.0' );
+define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
 define( 'MOLLOM_ERROR'   , 1000 );
@@ -110,7 +111,7 @@ function mollom_activate() {
 		update_option('mollom_version', $version);
 		
 		// legacy code here: 
-		// 1. moving data from old to new data model if necessary
+		// 1. moving data from old to new data model if necessary (0.4 -> 0.5)
 		$comments_table = $wpdb->prefix . 'comments';
 			
 		// only update if mollom_session_id still exists
@@ -136,7 +137,7 @@ function mollom_activate() {
 			}
 		}
 
-		// 2. Add two extra coluns to the mollom table if not exist
+		// 2. Add anextra column to the mollom table
 		$stat = true;
 		foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
 			if ($column == 'mollom_had_captcha') {
@@ -216,7 +217,7 @@ add_action('admin_menu','mollom_manage_page');
 function mollom_statistics_page() {
 	global $submenu;
 	if ( isset( $submenu['plugins.php'] ) )
-		add_submenu_page('plugins.php', __('Caught Spam'), 'Mollom', 'manage_options', 'mollommanage', 'show_statistics');
+		add_submenu_page('plugins.php', __('Caught Spam'), 'Mollom', 'manage_options', 'mollommanage', 'mollom_statistics');
 }
 add_action('admin_menu','mollom_statistics_page');
 
@@ -239,6 +240,10 @@ function _mollom_set_plugincount($action) {
 			update_option('mollom_ham_count', $count);
 			break;
 		case "unsure":
+			// make a spam count into an unsure count if a captcha was correctly completed!
+			$count = get_option('mollom_spam_count');
+			$count--;
+			update_option('mollom_spam_count', $count);
 			$count = get_option('mollom_unsure_count');
 			$count++;
 			update_option('mollom_unsure_count', $count);
@@ -255,7 +260,7 @@ function _mollom_set_plugincount($action) {
 * show_statistics
 * Shows statistics from the Mollom servers in the Wordpress administration module (hooks on plugins.php)
 */
-function show_statistics() {
+function mollom_statistics() {
 ?>
 <div class="wrap">
 <h2><?php _e('Mollom Statistics'); ?><h2>
@@ -328,10 +333,13 @@ function _mollom_calc_statistics($mode = 'nominal') {
 /**
 * mollom_graphs()
 * print out a nice XHTML/CSS graph with a breakdown of all the locally stored Mollom statistics
+* @param boolean $css If set to false, you can override the CSS of the bargraphs with your own CSS (Usefull in a theme CSS file)
 */
-function mollom_graphs() {
+function mollom_graphs($css = true) {
 	$count_percentage = _mollom_calc_statistics('percentage');
 	$count_nominal = _mollom_calc_statistics('nominal');
+	
+if ($css) {
 ?>
 <style type="text/css">
 #mollom-bar-graph {
@@ -368,6 +376,7 @@ function mollom_graphs() {
 }
 
 </style>
+<?php } ?>
 <div id="mollom-bar-graph">
 	<p><?php _e('WP Mollom has processed a total of <strong>'); echo $count_percentage['total']; _e('</strong> messages.'); ?>
 	<ul>
@@ -1071,7 +1080,7 @@ function mollom_check_comment($comment) {
 	
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 			// show a CAPTCHA and and set the count of blocked messages
-			_mollom_set_plugincount("unsure");	
+			_mollom_set_plugincount("spam");
 			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
 									'mollom_sessionid' => $result['session_id'],
 									'author' => $comment['comment_author'],
@@ -1140,17 +1149,20 @@ function mollom_check_trackback($comment) {
 		
 	if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 		// let the comment pass
+		_mollom_set_plugincount("ham");
 		add_action('comment_post', '_mollom_save_session', 1); // save session!!
 		return $comment;
 	}
 
 	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 		// kill the process here because of spam detection
+		_mollom_set_plugincount("spam");
 		_mollom_trackback_error('spam', 'Mollom recognized your trackback as spam.');
 	}
 	
 	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
-		// kill the process here because of unsure detection
+		// kill the process here because of unsure detection (Trackbacks don't get a CAPTCHA)
+		_mollom_set_plugincount("spam");
 		_mollom_trackback_error('unsure', 'Mollom could not recognize your trackback as spam or ham.');
 	}
 		
@@ -1234,6 +1246,7 @@ function mollom_check_captcha($comment) {
 			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
 			add_action('comment_post', '_mollom_save_session', 1);
 			add_action('comment_post', '_mollom_save_had_captcha', 1);
+			_mollom_set_plugincount("unsure");
 			return $comment;
 		}
 		

@@ -4,7 +4,7 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis
 Requires at least: 2.5.0
-Tested up to: 2.6.0
+Tested up to: 2.6.1
 Stable tag: 0.5.2
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
@@ -112,7 +112,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
  * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
  * fixed: the session_id is now passed correctly to _save_session() after the captcha is checked.
  * improved: more verbose status messages report when using the Mollom Manage module
- * improved: cleaned up some old unused functions
+ * improved: cleaned up some deprecated functions
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
  * added: approve and unapprove options in the Mollom Manage module
  * added: link to the originating post in the Mollom Manage module
