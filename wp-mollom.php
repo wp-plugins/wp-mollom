@@ -33,7 +33,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.5.3' );
+define( 'MOLLOM_VERSION', '0.5.3-dev' );
 define( 'MOLLOM_USER_AGENT', 'WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
@@ -151,7 +151,7 @@ function mollom_activate() {
 				$wpdb->query("ALTER TABLE $mollom_table ADD $_column TINYINT (1) NOT NULL DEFAULT 0");
 			}
 		}
-				
+		
 		// end of legacy code
 	}
 }
@@ -194,8 +194,10 @@ register_deactivation_hook(__FILE__, 'mollom_deactivate');
 * hook the config page in the Wordpress administration module 
 */
 function mollom_config_page() {
-	if (function_exists('add_submenu_page')) 
+	global $submenu;
+	if ((function_exists('add_submenu_page')) && (isset($submenu['options-general.php']))) {
 		add_submenu_page('options-general.php', __('Mollom'), __('Mollom'), 'manage_options', 'mollom-key-config', 'mollom_config');
+	}
 }
 add_action('admin_menu','mollom_config_page');
 
@@ -212,9 +214,21 @@ function mollom_manage_page() {
 }
 add_action('admin_menu','mollom_manage_page');
 
+/**
+* mollom_statistics_page
+* hook the statistics page in the Wordpress administration module
+*/
+function mollom_statistics_page() {
+	global $submenu;
+	if ((function_exists('add_submenu_page')) && (isset($submenu['plugins.php']))) {
+		add_submenu_page('plugins.php', __('Mollom'), __('Mollom'), 'show_statistics', 'mollom-key-config', 'mollom_config');
+	}
+}
+add_action('admin_menu', 'mollom_statistics_page');
+
 /** 
 * _mollom_set_plugincount
-* sets the count of comments asserted as spam or unsure
+* Sets the count of comments asserted as spam or unsure. Local stored data is used to generate statistics
 * @param boolean $moderated if true, set the count of the manually moderated comments (used in sendFeedback)
 */
 function _mollom_set_plugincount($action, $moderated = false) {
@@ -244,16 +258,6 @@ function _mollom_set_plugincount($action, $moderated = false) {
 	}
 }
 
-/** 
-* _mollom_get_spamcount
-* get the amount of blocked items 
-* @return integer The amount of blocked items
-*/
-function _mollom_get_spamcount() {
-	$count = get_option('mollom_spam_count');
-	return $count;
-}
-
 /**
 * _mollom_get_captchacount
 * get the number of comments for which a captcha was shown and passed
@@ -277,24 +281,30 @@ function mollom_show_count() {
 }
 
 /**
-* mollom_moderate_comment
-* Show moderation options in your theme if you're logged in and have permissions. Must be within the comment loop.
-* @param string The moderation links to show as a string
+* show_statistics
+* Shows statistics from the Mollom servers in the Wordpress administration module (hooks on plugins.php)
 */
-function mollom_moderate_comment($comment_ID) {
-	if (function_exists('current_user_can') && current_user_can('manage_options')) {
-		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=spam', 'mollom-moderate-comment'));
-		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $ccomment_ID . '&maction=profanity', 'mollom-moderate-comment'));
-		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
-		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=unwanted', 'mollom-moderate-comment'));
-		
-		$str = 'Moderate: <a href="wp-admin/' . $spam . '" title="moderate as spam">spam</a> | ' .
-		    '<a href="wp-admin/' . $profanity . '" title="moderate as profanity">profanity</a> | ' .
-			'<a href="wp-admin/' . $lowquality . '" title="moderate as low quality">low quality</a> | ' .
-			'<a href="wp-admin/' . $unwanted . '" title="moderate as unwanted">unwanted</a>';
-		
-		return $str;
+function show_statistics() {
+?>
+<div class="wrap">
+<h2><?php _e('Mollom Statistics'); ?><h2>
+<?php
+	$public_key = get_option('mollom_public_key');
+	if (!empty($public_key)) {
+?>
+
+<!-- Flash object geneterated by mollom.com -->
+<embed src="http://mollom.com/statistics.swf?key=<?php echo $public_key; ?>"
+quality="high" width="100%" height="430" name="Mollom" align="middle"
+play="true" loop="false" allowScriptAccess="sameDomain"
+type="application/x-shockwave-flash"
+pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
+
+<?php
 	}
+?>
+</div>
+<?php
 }
 
 /** 
@@ -338,7 +348,7 @@ function mollom_config() {
 			update_option('mollom_private_key', $privatekey);
 			update_option('mollom_public_key', $publickey);
 			
-			$result = _mollom_verify_key();
+			$result = mollom('mollom.verifyKey');
 		}
 		
 		// set the policy mode for the site
@@ -379,7 +389,7 @@ function mollom_config() {
 		$publickey = get_option('mollom_public_key');
 		
 		if (!empty($privatekey) && !empty($publickey)) {
-			$result = _mollom_verify_key();
+			$result = mollom('mollom.verifyKey');
 		} else {
 			if (empty($privatekey)) {
 				$ms[] = 'privatekeyempty';
@@ -420,7 +430,7 @@ function mollom_config() {
 				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.'))); 		
 	?>	
 <div class="wrap">
-<h2>Mollom Configuration</h2>
+<h2><?php _e('Mollom Configuration'); ?></h2>
 <div class="narrow">
 <?php if ( !empty($_POST ) ) : ?>
 <div id="message" class="updated fade"><p><strong><?php _e('Options saved.') ?></strong></p></div>
@@ -789,7 +799,7 @@ jQuery(document).ready(function() {
 }
 </style>
 <div class="wrap">
-<h2>Mollom Manage</h2>
+<h2><?php _e('Mollom Manage'); ?></h2>
 <p><?php _e('Mollom stops spam before it even reaches your database.'); ?></p>
 <p><?php _e('This is an overview of all the Mollom approved comments posted on your website. You can moderate them here. Through moderating these messages, Mollom learns from it\'s mistakes. Moderation of messages that, in your view, should have been blocked, is encouraged.'); ?></p>
 <p><?php _e('Take a look at <a href="#" id="mollom-stat-toggle">some statistics</a>.')?></p>
@@ -942,13 +952,29 @@ function mollom_manage_wp_queue($comment_ID) {
 }
 add_action('wp_set_comment_status', 'mollom_manage_wp_queue');
 
-/** 
-* _mollom_verify_key
-* vverifies the private/public key combo against the Mollom servers' information
-* @return mixed Returns true if authenticated, or a WP_Error object if something goes wrong 
+/**
+* mollom_moderate_comment
+* Show moderation options in your theme if you're logged in and have permissions. Must be within the comment loop.
+* @param string The moderation links to show as a string
 */
-function _mollom_verify_key() {	
-	return mollom('mollom.verifyKey');
+function mollom_moderate_comment($comment_ID) {
+	if (function_exists('current_user_can') && current_user_can('manage_options')) {
+		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=spam', 'mollom-moderate-comment'));
+		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $ccomment_ID . '&maction=profanity', 'mollom-moderate-comment'));
+		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
+		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=unwanted', 'mollom-moderate-comment'));
+		$approved = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=approve', 'mollom-moderate-comment'));		
+		$unapproved = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=unapprove', 'mollom-moderate-comment'));
+		
+		$str = 'Moderate: <a href="wp-admin/' . $spam . '" title="moderate as spam">spam</a> | ' .
+		    '<a href="wp-admin/' . $profanity . '" title="moderate as profanity">profanity</a> | ' .
+			'<a href="wp-admin/' . $lowquality . '" title="moderate as low quality">low quality</a> | ' .
+			'<a href="wp-admin/' . $unwanted . '" title="moderate as unwanted">unwanted</a> | ' .
+			'<a href="wp-admin/' . $approved . '" title="moderate as unwanted">approved</a> | ' . 
+			'<a href="wp-admin/' . $unapproved . '" title="moderate as unwanted">unapproved</a>';
+		
+		return $str;
+	}
 }
 
 /** 
@@ -1020,7 +1046,7 @@ function mollom_check_comment($comment) {
 									'email' => $comment['comment_author_email'],
 									'comment' => $comment['comment_content']);
 
-			_mollom_show_captcha('', $mollom_comment);
+			mollom_show_captcha('', $mollom_comment);
 			die();
 		}
 		
@@ -1122,29 +1148,13 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 	die();
 }
 
-/** 
-* _mollom_save_session
-* save the session ID for this comment in the database in MOLLOM_TABLE
-* @param integer $comment_ID the id of the comment
-* @return integer The id of the comment
-*/
-function _mollom_save_session($comment_ID) {
-	global $wpdb, $mollom_sessionid;
-	
-	// set the mollom session id for later use when moderation is needed
-	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment_ID, $mollom_sessionid) );
-
-	return $comment_ID;
-}
-
 /**
-* _mollom_check_captcha 
+* mollom_check_captcha 
 * Check the answer of the CAPTCHA presented by Mollom. Called through the pre_process_hook as a callback.
 * @param array $comment the comment array passed by the pre_process hook 
 * @return array The comment array passed by the pre_process hook 
 */
-function _mollom_check_captcha($comment) {
+function mollom_check_captcha($comment) {
 	if ($_POST['mollom_sessionid']) {
 		global $wpdb;
 	
@@ -1163,7 +1173,7 @@ function _mollom_check_captcha($comment) {
 			$mollom_comment['email'] = $comment['comment_author_email'];
 			$mollom_comment['comment'] = $comment['comment_content'];
 
-			_mollom_show_captcha($message, $mollom_comment);
+			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
 		
@@ -1204,14 +1214,14 @@ function _mollom_check_captcha($comment) {
 			$mollom_comment['url'] = $comment['comment_author_url'];
 			$mollom_comment['email'] = $comment['comment_author_email'];
 			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
-			_mollom_show_captcha($message, $mollom_comment);
+			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
 	}
 
 	return $comment;
 }
-add_action('preprocess_comment','_mollom_check_captcha');
+add_action('preprocess_comment','mollom_check_captcha');
 
 /** 
 * _mollom_show_captcha
@@ -1219,7 +1229,7 @@ add_action('preprocess_comment','_mollom_check_captcha');
 * @param string $message an status or error message that needs to be shown to the user
 * @param array $mollom_comment the array with the comment data
 */
-function _mollom_show_captcha($message = '', $mollom_comment = array()) {
+function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	$data = array('author_ip' => _mollom_author_ip(), 'session_id' => $mollom_comment['mollom_sessionid']);
 
 	$result = mollom('mollom.getAudioCaptcha', $data);	
@@ -1331,6 +1341,22 @@ function _mollom_show_captcha($message = '', $mollom_comment = array()) {
 </html>
 
 <?php
+}
+
+/**
+* _mollom_save_session
+* save the session ID for this comment in the database in MOLLOM_TABLE
+* @param integer $comment_ID the id of the comment
+* @return integer The id of the comment
+*/
+function _mollom_save_session($comment_ID) {
+	global $wpdb, $mollom_sessionid;
+	
+	// set the mollom session id for later use when moderation is needed
+	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
+	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment_ID, $mollom_sessionid) );
+
+	return $comment_ID;
 }
 
 /**
