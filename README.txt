@@ -103,6 +103,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 3. screenshot-3.png
 4. screenshot-4.png
 5. screenshot-5.png
+5. screenshot-6.png
 
 == Changelog ==
 * 2008/08/XX - 0.6.0
