@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.5.3
+Version: 0.6.0
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -33,7 +33,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.5.3-dev' );
+define( 'MOLLOM_VERSION', '0.6.0-dev' );
 define( 'MOLLOM_USER_AGENT', 'WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
@@ -62,7 +62,6 @@ function mollom_activate() {
 				`comment_ID` BIGINT( 20 ) UNSIGNED NOT NULL DEFAULT '0',
 				`mollom_session_ID` VARCHAR( 40 ) NULL DEFAULT NULL,
 				`mollom_had_captcha` INT ( 1 ) NOT NULL DEFAULT '0',
-				`mollom_was_moderated` INT ( 1 ) NOT NULL DEFAULT '0',
 				UNIQUE (
 					`comment_ID` ,
 					`mollom_session_ID`
@@ -138,20 +137,16 @@ function mollom_activate() {
 		}
 
 		// 2. Add two extra coluns to the mollom table if not exist
-		$columns = array('mollom_had_captcha', 'mollom_was_moderated');
-		foreach($columns as $_column) {
-			$stat = true;
-			foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
-				if ($column == $_column) {
-					$stat = false;
-				}
-			}
-
-			if ($stat) {
-				$wpdb->query("ALTER TABLE $mollom_table ADD $_column TINYINT (1) NOT NULL DEFAULT 0");
+		$stat = true;
+		foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
+			if ($column == 'mollom_had_captcha') {
+				$stat = false;
 			}
 		}
-		
+
+		if ($stat) {
+			$wpdb->query("ALTER TABLE $mollom_table ADD mollom_had_captcha TINYINT (1) NOT NULL DEFAULT 0");
+		}
 		// end of legacy code
 	}
 }
@@ -220,24 +215,23 @@ add_action('admin_menu','mollom_manage_page');
 */
 function mollom_statistics_page() {
 	global $submenu;
-	if ((function_exists('add_submenu_page')) && (isset($submenu['plugins.php']))) {
-		add_submenu_page('plugins.php', __('Mollom'), __('Mollom'), 'show_statistics', 'mollom-key-config', 'mollom_config');
-	}
+	if ( isset( $submenu['plugins.php'] ) )
+		add_submenu_page('plugins.php', __('Caught Spam'), 'Mollom', 'manage_options', 'mollommanage', 'show_statistics');
 }
-add_action('admin_menu', 'mollom_statistics_page');
+add_action('admin_menu','mollom_statistics_page');
 
 /** 
 * _mollom_set_plugincount
 * Sets the count of comments asserted as spam or unsure. Local stored data is used to generate statistics
-* @param boolean $moderated if true, set the count of the manually moderated comments (used in sendFeedback)
+* @param boolean $action The action which was taken and for wich to set the count.
 */
-function _mollom_set_plugincount($action, $moderated = false) {
+function _mollom_set_plugincount($action) {
 	switch ($action) {
 		default:
 		case "spam":
 			$count = get_option('mollom_spam_count');
 			$count++;
-			update_option('mollom_spom_count', $count);
+			update_option('mollom_spam_count', $count);
 			break;
 		case "ham":
 			$count = get_option('mollom_ham_count');
@@ -249,35 +243,12 @@ function _mollom_set_plugincount($action, $moderated = false) {
 			$count++;
 			update_option('mollom_unsure_count', $count);
 			break;
+		case "moderated":
+			$count_moderated = get_option('mollom_count_moderated');
+			$count_moderated++;
+			update_option('mollom_count_moderated', $count_moderated);
+			break;
 	}
-		
-	if ($moderated) {
-		$count_moderated = get_option('mollom_count_moderated');
-		$count_moderated++;
-		update_option('mollom_count_moderated', $count_moderated);
-	}
-}
-
-/**
-* _mollom_get_captchacount
-* get the number of comments for which a captcha was shown and passed
-* @return integer The number of comments for which a captcha was shown and passed
-*/
-function _mollom_get_captchacount() {
-	global $wpdb;
-
-	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;	
-	$result = $wpdb->query("SELECT COUNT(*) FROM $mollom_table WHERE mollom_had_captcha = 1");
-	
-	return $result;
-}
-
-/** 
-* mollom_show_count
-* show the amount of blocked items 
-*/
-function mollom_show_count() {
-	echo "Mollom has eaten " . _mollom_get_plugincount() . " spams so far.";
 }
 
 /**
@@ -288,21 +259,123 @@ function show_statistics() {
 ?>
 <div class="wrap">
 <h2><?php _e('Mollom Statistics'); ?><h2>
+<h3><?php _e('What is happening at Mollom?'); ?></h3>
 <?php
 	$public_key = get_option('mollom_public_key');
 	if (!empty($public_key)) {
 ?>
-
+<p><?php _e('These are statistics kept by the Mollom service.'); ?></p>
 <!-- Flash object geneterated by mollom.com -->
 <embed src="http://mollom.com/statistics.swf?key=<?php echo $public_key; ?>"
-quality="high" width="100%" height="430" name="Mollom" align="middle"
+quality="high" width="600" height="430" name="Mollom" align="middle"
 play="true" loop="false" allowScriptAccess="sameDomain"
 type="application/x-shockwave-flash"
 pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
 
 <?php
+	} else {
+?>
+<p><?php _e('The Mollom plugin is not configured. Please go to <strong>settings &gt; mollom</strong> and configure the plugin.'); ?></p>
+<?php
 	}
 ?>
+<h3><?php _e('What is happening over here?'); ?></h3>
+<p><?php _e('The plugin keeps some statistics of it\'s own. These are stored in the database. These values represent the number of messages that the plugin has succesfully parsed.'); ?></p>
+<?php mollom_graphs(); ?>
+</div>
+<?php
+}
+
+/**
+* _mollom_calc_statistics
+* fetch all statistical data that is stored locally. 
+* @param string $mode the mode of what to output: 'nominal' returns absolute numbers, 'percentage' returns percentages
+* @return array An array containing the total number of parsed messages and a breakdown of that number
+*/
+function _mollom_calc_statistics($mode = 'nominal') {
+	// Generate local statistics
+	$count_nominal = array(
+		'spam' => get_option('mollom_spam_count'),
+		'ham' => get_option('mollom_ham_count'),
+		'unsure' => get_option('mollom_unsure_count')
+	);
+	
+	$total_count = 0;
+	foreach($count_nominal as $count) {
+		$total_count += $count;
+	}
+	
+	$count_nominal['moderated'] = get_option('mollom_count_moderated');
+	
+	$count_percentage = array();	
+	foreach($count_nominal as $key => $count) {
+		$count_percentage[$key] = round(($count / $total_count * 100), 2);
+	}
+	
+	switch ($mode) {
+		default:
+		case 'nominal':
+			$count_nominal['total'] = $total_count;
+			return $count_nominal;
+			break;
+		case 'percentage':
+			$count_percentage['total'] = $total_count;
+			return $count_percentage;
+			break;
+	}
+}
+
+/**
+* mollom_graphs()
+* print out a nice XHTML/CSS graph with a breakdown of all the locally stored Mollom statistics
+*/
+function mollom_graphs() {
+	$count_percentage = _mollom_calc_statistics('percentage');
+	$count_nominal = _mollom_calc_statistics('nominal');
+?>
+<style type="text/css">
+#mollom-bar-graph {
+	position: relative;
+	margin: 0 0 0 15px;
+}
+
+#mollom-bar-graph ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#mollom-bar-graph ul li {
+	clear: both;
+}
+
+#mollom-bar-graph ul li .graph {
+	position: relative; /* IE is dumb */
+	width: 400px;
+	border: 1px solid #ddd;
+	padding: 2px;
+	height: 26px;
+}
+
+#mollom-bar-graph ul li .graph .bar {
+	display: block;
+	position: relative;
+	background: #ddd;
+	text-align: left;
+	color: #333;
+	height: 2em;
+	line-height: 2em;
+}
+
+</style>
+<div id="mollom-bar-graph">
+	<p><?php _e('WP Mollom has processed a total of <strong>'); echo $count_percentage['total']; _e('</strong> messages.'); ?>
+	<ul>
+		<li><?php _e('Ham: '); ?><div class="graph" title="<?php echo $count_nominal['ham']; _e(' messages cleared as ham.'); ?>"><strong class="bar" style="width: <?php echo $count_percentage['ham']; ?>%;"><?php echo $count_percentage['ham']; ?>%</strong></div></li>
+		<li><?php _e('Spam: '); ?><div class="graph" title="<?php echo $count_nominal['spam']; _e(' messages blocked as spam.'); ?>"><strong class="bar" style="width: <?php echo $count_percentage['spam']; ?>%;"><?php echo $count_percentage['spam']; ?>%</strong></div></li>
+		<li><?php _e('Unsure: '); ?><div class="graph" title="<?php echo $count_nominal['unsure']; _e(' messages passed a captcha succesfully.'); ?>"><strong class="bar" style="width: <?php echo $count_percentage['unsure']; ?>%;"><?php echo $count_percentage['unsure']; ?>%</strong></div></li>
+		<li><?php _e('Moderated: '); ?><div class="graph" title="<?php echo $count_nominal['moderated']; _e(' messages had to be manually moderated by you.'); ?>"><strong class="bar" style="width: <?php echo $count_percentage['moderated']; ?>%;"><?php echo $count_percentage['moderated']; ?>%</strong></div></li>
+	</ul>
 </div>
 <?php
 }
@@ -514,8 +587,8 @@ function _mollom_send_feedback($action, $comment_ID) {
 				
 			if($result) {
 				if($wpdb->query( $wpdb->prepare("DELETE FROM $wpdb->comments, $mollom_table USING $wpdb->comments INNER JOIN $mollom_table USING(comment_ID) WHERE $wpdb->comments.comment_ID = %d", $comment_ID))) {
-					// update the manual moderation statistic
-					_mollom_set_plugincount("spam", true);
+					// update the  statistics for manual moderation
+					_mollom_set_plugincount("moderated");
 					$ms[] = 'allsuccess'; // return all success on successfull feedback
 				} else {
 					$ms[] = 'feedbacksuccess';
@@ -614,26 +687,8 @@ function mollom_manage() {
 	}
 	
 	// Generate local statistics
-	$count_nominal = array(
-		'spam' => get_option('mollom_spam_count'),
-		'ham' => get_option('mollom_ham_count'),
-		'unsure' => get_option('mollom_unsure_count'),
-	);
-	
-	$total_count = 0;
-	foreach($count_nominal as $count) {
-		$total_count += $count;
-	}
-	
-	$count_percentage = array();
-	foreach($count_nominal as $key => $count) {
-		$count_percentage[$key] = round(($count / $total_count * 100), 2);
-	}	
-	
-	$count_nominal['moderated'] = get_option('mollom_count_moderated');
-	if (get_option('mollom_count_moderated') > 0) {
-		$count_percentage['moderated'] = round((get_option('mollom_count_moderated') / $total_count * 100), 2);
-	}
+	$count_nominal = _mollom_calc_statistics('nominal');
+	$count_percentage = _mollom_calc_statistics('percentage');
 	
 	// from here on: generate messages and overview page
 	$messages = array('allsuccess' => array('color' => 'd2f2d7', 'text' => __('Feedback sent to Mollom. The comment was successfully deleted.')),
@@ -781,22 +836,6 @@ jQuery(document).ready(function() {
 	padding: 3px;
 }
 
-#mollom-statistics {
-	margin: 5px;
-	font-size: 0.9em;
-}
-
-#mollom-statistics ul {
-	list-style: none;
-	border-left: 5px solid #ddd;
-	margin: 0;
-	padding: 0;
-}
-
-#mollom-statistics ul li {
-	margin: 0 0 0 5px;
-	padding: 0;
-}
 </style>
 <div class="wrap">
 <h2><?php _e('Mollom Manage'); ?></h2>
@@ -805,13 +844,7 @@ jQuery(document).ready(function() {
 <p><?php _e('Take a look at <a href="#" id="mollom-stat-toggle">some statistics</a>.')?></p>
 
 <div id="mollom-statistics">
-	<p><?php _e('So far, <strong>'); echo $total_count; _e(' comments and trackbacks</strong> were registered by WP Mollom. This is a breakdown:')?></p>
-	<ul id="mollom-statistics-breakdown">
-		<li><?php _e('Cleared as <em>ham</em> : '); echo $count_nominal['ham']; _e(' or '); echo $count_percentage['ham']; _e('%'); ?></li>
-		<li><?php _e('Blocked as <em>spam</em> : '); echo $count_nominal['spam']; _e(' or '); echo $count_percentage['spam']; _e('%'); ?></li>
-		<li><?php _e('Mollom was <em>unsure</em> about and showed a CAPTCHA : '); echo $count_nominal['unsure']; _e(' or '); echo $count_percentage['unsure']; _e('%'); ?></li>
-		<li><?php echo $count_nominal['moderated']; _e(' or '); echo $count_percentage['moderated']; _e('% of all messages were manually <em>moderated</em> by you.'); ?></li>
-	</ul>
+<?php mollom_graphs(); ?>
 </div>
 
 <div class="mollom-report">
@@ -1032,7 +1065,7 @@ function mollom_check_comment($comment) {
 
 		elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 			// kill the process here because of spam detection and set the count of blocked messages
-			_mollom_set_plugincount("spam");			
+			_mollom_set_plugincount("spam");	
 			wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.'));
 		}
 	
