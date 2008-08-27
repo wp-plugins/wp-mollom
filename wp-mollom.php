@@ -314,7 +314,11 @@ function _mollom_calc_statistics($mode = 'nominal') {
 	
 	$count_percentage = array();	
 	foreach($count_nominal as $key => $count) {
-		$count_percentage[$key] = round(($count / $total_count * 100), 2);
+		if ($total_count != 0) {
+			$count_percentage[$key] = round(($count / $total_count * 100), 2);
+		} else {
+			$count_percentage[$key] = 0;
+		}
 	}
 	
 	switch ($mode) {

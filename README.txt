@@ -106,6 +106,8 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 5. screenshot-6.png
 
 == Changelog ==
+* 2008/XX - 0.6.1
+ * fixed: division by 0 error on line 317
 * 2008/08/24 - 0.6.0
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
@@ -115,15 +117,10 @@ WP Mollom comes with handy theme functions which you can use in your theme.
  * improved: more verbose status messages report when using the Mollom Manage module
  * improved: cleaned up some deprecated functions
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
- 
  * added: approve and unapprove options in the Mollom Manage module
- 
  * added: link to the originating post in the Mollom Manage module
- 
  * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module
- 
  * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API
- 
  * added: detailed statistics. You can find these under Plugins > Mollom
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
