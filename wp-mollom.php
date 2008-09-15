@@ -34,7 +34,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.6.0-dev' );
+define( 'MOLLOM_VERSION', '0.6.1-dev' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
@@ -45,9 +45,6 @@ define( 'MOLLOM_REDIRECT', 1200 );
 define( 'MOLLOM_ANALYSIS_HAM'     , 1);
 define( 'MOLLOM_ANALYSIS_SPAM'    , 2);
 define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
-
-// Location of the Incutio XML-RPC library which is integrated with Wordpress
-require_once(ABSPATH . '/wp-includes/class-IXR.php');
 
 /** 
 * mollom_activate
@@ -216,8 +213,11 @@ add_action('admin_menu','mollom_manage_page');
 */
 function mollom_statistics_page() {
 	global $submenu;
-	if ( isset( $submenu['plugins.php'] ) )
-		add_submenu_page('plugins.php', __('Caught Spam'), 'Mollom', 'manage_options', 'mollommanage', 'mollom_statistics');
+	if ( isset( $submenu['edit-comments.php'] ) )
+		add_submenu_page('edit-comments.php', __('Caught Spam'), 'Mollom statistics', 'manage_options', 'mollomstats', 'mollom_statistics');
+	if ( function_exists('add_management_page') )
+		add_management_page(__('Caught Spam'), 'Mollom statistics', 'moderate_comments', 'mollomstats', 'mollom_statistics');
+
 }
 add_action('admin_menu','mollom_statistics_page');
 
@@ -280,7 +280,7 @@ pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
 <?php
 	} else {
 ?>
-<p><?php _e('The Mollom plugin is not configured. Please go to <strong>settings &gt; mollom</strong> and configure the plugin.'); ?></p>
+<p><?php _e('The Mollom plugin is not configured. Please go to <strong><a href="options-general.php?page=mollom-key-config">Settings &gt; Mollom</a></strong> and configure the plugin.'); ?></p>
 <?php
 	}
 ?>
@@ -1432,6 +1432,10 @@ function _mollom_save_had_captcha($comment_ID) {
 * @return mixed Either a WP_Error on error or a mixed return depending on the called API function
 */
 function mollom($method, $data = array()) {
+	// Location of the Incutio XML-RPC library which is integrated with Wordpress
+	// lazy loading: only if this function gets called
+	require_once(ABSPATH . '/wp-includes/class-IXR.php');
+	// let's set the user agent string
 	$user_agent = MOLLOM_USER_AGENT;
 	if (get_option('mollom_servers') == NULL) {
 		$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);

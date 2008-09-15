@@ -23,6 +23,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 == Installation ==
 
+* Disable akismet or other spamdeterring plugins you are currently using
 * Drop wp-mollom.php in /wp-content/plugins.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
@@ -30,9 +31,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
   with the Mollom service. You can can create an account and register your website at http://www.mollom.com
 * All comments posted to your blogs should now go through the Mollom service.
 
-== Usage ==
-
-=== Configuration ===
+== Configuration ==
 After you have set the public/private key combination, Mollom will automatically protect your blog. The plugin takes
 care of everything so you don't have to worry about moderation, false positives,... and you can focus on what's really
 important: creating great content and interact with your visitors in a proper fashion.
@@ -49,7 +48,14 @@ Extra options in the configuration panel:
   though, but it improves accuracy of the plugin. Please refer to the <a href="http://www.mollom.com/support">Support
   section</a> for detailed information.
 
-=== Moderation ===
+== Usage ==
+
+Mollom takes care of everything. If a comment is flagged as spam it will be blocked. If the comment is ham, it will
+just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
+to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
+reject the comment and regenerate a new CAPTCHA for the commenter to try again.
+
+== Moderation ==
 
 Moderation is still possible. You can moderate comments through the Mollom Manage Module. You can find the module
 in the 'Comments' menu of your Wordpress administration board. The default Wordpress moderation queue is still 
@@ -72,7 +78,7 @@ differend header colors for the comment. Consult the legend for the meaning of e
 
 Moderation is encouraged in case of a false positive. Mollom will learn from the feedback you send through moderation.
 
-=== Theme functions ===
+== Theme functions ==
 
 WP Mollom comes with handy theme functions which you can use in your theme.
 
@@ -82,7 +88,9 @@ WP Mollom comes with handy theme functions which you can use in your theme.
   `<?php mollom_moderate_comment($comment->Comment_ID); ?>` Make sure it's within the Comment Loop!!
 * mollom_graphs()
   This function prints a nice bar graph with statistics of the performance of the plugin your site. This function is used
-  in the Mollom Manage Module. Use this code in your theme:
+  in the Mollom Manage Module. The graph itself is CSS based and the function will add some in line CSS to your theme. If you 
+  pass 'false' as an argument to the function, you can override this behavior and provide your own CSS.
+  Use this code in your theme:
   `<?php mollom_graphs(); ?>`
 
 == Notes ==
@@ -108,6 +116,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 == Changelog ==
 * 2008/XX - 0.6.1
  * fixed: division by 0 error on line 317
+ * changed: mollom statistics are now hooked in edit-comments.php instead of plugins.php
 * 2008/08/24 - 0.6.0
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
