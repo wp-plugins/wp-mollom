@@ -200,10 +200,9 @@ add_action('admin_menu','mollom_config_page');
 */
 function mollom_manage_page() {
 	global $submenu;
-	if ( isset( $submenu['edit-comments.php'] ) )
-		add_submenu_page('edit-comments.php', __('Caught Spam'), 'Mollom', 'moderate_comments', 'mollommanage', 'mollom_manage');
-	if ( function_exists('add_management_page') )
-		add_management_page(__('Caught Spam'), 'Mollom', 'moderate_comments', 'mollommanage', 'mollom_manage');
+	if ( isset( $submenu['edit-comments.php'] ) ) {
+		add_submenu_page('edit-comments.php', __('Mollom'), __('Mollom'), 'moderate_comments', 'mollommanage', 'mollom_manage');
+	}
 }
 add_action('admin_menu','mollom_manage_page');
 
@@ -213,11 +212,9 @@ add_action('admin_menu','mollom_manage_page');
 */
 function mollom_statistics_page() {
 	global $submenu;
-	if ( isset( $submenu['edit-comments.php'] ) )
-		add_submenu_page('edit-comments.php', __('Caught Spam'), 'Mollom statistics', 'manage_options', 'mollomstats', 'mollom_statistics');
-	if ( function_exists('add_management_page') )
-		add_management_page(__('Caught Spam'), 'Mollom statistics', 'moderate_comments', 'mollomstats', 'mollom_statistics');
-
+	if ( isset( $submenu['edit-comments.php'] ) ) {
+		add_submenu_page('edit-comments.php', __('Mollom statistics'), __('Mollom statistics'), 'manage_options', 'mollomstats', 'mollom_statistics');
+	}
 }
 add_action('admin_menu','mollom_statistics_page');
 
@@ -1384,7 +1381,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
 	<input type="hidden" value="<?php echo $mollom_comment['url']; ?>" name="url" />
 	<input type="hidden" value="<?php echo $mollom_comment['email']; ?>" name="email" />
-	<input type="hidden" value="<?php echo htmlspecialchars($mollom_comment['comment']); ?>" name="comment" /></p>
+	<input type="hidden" value="<?php echo htmlentities($mollom_comment['comment']); ?>" name="comment" /></p>
 	<p><input type="submit" value="Submit" class="submit" /></p>
 </form>
 </body>
