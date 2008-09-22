@@ -1434,24 +1434,16 @@ function mollom($method, $data = array()) {
 	require_once(ABSPATH . '/wp-includes/class-IXR.php');
 	// let's set the user agent string
 	$user_agent = MOLLOM_USER_AGENT;
+	// let's fetch us some servers
 	if (get_option('mollom_servers') == NULL) {
-		$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);
-		$mollom_client->useragent = $user_agent;
-		
-		if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
-				// Something went wrong! Return the error
-				$mollom_error = new WP_Error();
-				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-				return $mollom_error;
+		$result = _mollom_retrieve_server_list();
+		if (function_exists('is_wp_error') && is_wp_error($result)) {
+			return $result;
 		}
-
-		$servers = $mollom_client->getResponse();
-		
-		update_option('mollom_servers', implode('#', $servers));
-	} else {
-		$servers = explode('#', get_option('mollom_servers'));	
 	}
+	$servers = explode('#', get_option('mollom_servers'));	
 	
+	// fail-over/loadbalancing act
 	foreach ($servers as $server) {
 		$mollom_client = new IXR_Client($server . '/' . MOLLOM_API_VERSION);
 		$mollom_client->useragent = $user_agent;
@@ -1459,22 +1451,19 @@ function mollom($method, $data = array()) {
 		$result = $mollom_client->query($method, $data + _mollom_authenticate());
 	
 		if($mollom_client->getErrorCode()) {
-			// refresh the serverlist
+			// refresh the server list and try again
 			if ($mollom_client->getErrorCode() == MOLLOM_REFRESH) {
-				$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);
-		
-				if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
-					$mollom_error = new WP_Error();
-					$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-					return $mollom_error;
+				$result = _mollom_retrieve_server_list();
+				if (function_exists('is_wp_error') && is_wp_error($result)) {
+					return $result;
+				} else {
+					$servers = explode('#', get_option('mollom_servers'));
 				}
-		
-				$servers = $mollom_client->getResponse();
-				update_option('mollom_servers', implode('#', $servers));				
 			}
-			
+						
 			// redirect to a different server
 			else if ($mollom_client->getErrorCode() == MOLLOM_REDIRECT) {
+				// $server is overloaded, let's try the next one
 				// do nothing, travel through the loop again and try the next server in the list
 			}
 
@@ -1485,18 +1474,54 @@ function mollom($method, $data = array()) {
 				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
 				return $mollom_error;
 			}
-						
-			// Error of a different kind (network, etc)
-			else {
-				$mollom_error = new WP_error();
-				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-				return $mollom_error;
-			}
 		} else {
 			// return a response if all went well
 			return $mollom_client->getResponse();
 		}
 	}
+
+	// renew the server cache. Maybe this will fix things next time.
+	$result = _mollom_retrieve_server_list();
+	if (function_exists('is_wp_error') && is_wp_error($result)) {
+		return $result;
+	}
+	
+	$mollom_error = new WP_Error();
+	$mollom_error->add(-6, "The Mollom servers could not be contacted at this time. Please try again.");
+	return $mollom_error;
+}
+
+/**
+* _mollom_retrieve_server_list
+* retrieves a list of servers and caches it in the database
+* @return boolean true if a list was succesfully retrieved and stored. Otherwise, Mollom breaks here.
+**/
+function _mollom_retrieve_server_list() {
+	// hard coded list cfr API documentation, section 9
+	$servers = array(
+				'http://xmlrpc1.mollom.com/',
+				'http://xmlrpc2.mollom.com/',
+				'http://xmlrpc3.mollom.com/'
+			);
+	
+	$user_agent = MOLLOM_USER_AGENT;
+	
+	foreach($servers as $server) {
+		$mollom_client = new IXR_Client($server . MOLLOM_API_VERSION);
+		$mollom_client->useragent = $user_agent;
+		
+		if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
+			// Something went wrong! Let's try the next one in the list
+		} else {
+			$servers = $mollom_client->getResponse();
+			update_option('mollom_servers', implode('#', $servers));
+			return true;
+		}
+	}
+	
+	$mollom_error = new WP_Error();
+	$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
+	return $mollom_error;
 }
 
 /** 

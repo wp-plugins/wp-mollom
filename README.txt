@@ -116,7 +116,9 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 == Changelog ==
 * 2008/XX - 0.6.1
  * fixed: division by 0 error on line 317
+ * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
  * changed: mollom statistics are now hooked in edit-comments.php instead of plugins.php
+ * added: _mollom_retrieve_server_list() function now handles all getServerList calls
 * 2008/08/24 - 0.6.0
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
