@@ -510,7 +510,7 @@ function mollom_config() {
 				'wrongkey' => array('color' => 'd22', 'text' => __('The key you provided is wrong.')),
 				'mollomerror' => array('color' => 'd22', 'text' => __('Mollom error: ' . $errormsg)),
 				'networkerror' => array('color' =>'d22', 'text' => __('Network error: ' . $errormsg)),
-				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.'))); 		
+				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.')));
 	?>	
 <div class="wrap">
 <h2><?php _e('Mollom Configuration'); ?></h2>
@@ -551,7 +551,7 @@ function mollom_config() {
 	<p><?php _e('When in doubt, just leave this off.'); ?></p>
 	<p><?php _e('enable: '); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
 	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
-	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
+	<p class="submit"><input type="submit" value="<?php _e('Update options &raquo;'); ?>" id="submit" name="submit"/></p>
 </form>
 </div>
 </div>
@@ -895,7 +895,7 @@ if(!empty($feedback)) {
 <?php
 	if (!$comments) { ?>
 
-<p class="mollom-no-comments">There are no comments that can be moderated through Mollom.</p>
+<p class="mollom-no-comments"><?php _e('There are no comments that can be moderated through Mollom.'); ?></p>
 
 <?php } else { ?>
 
@@ -924,10 +924,10 @@ if(!empty($feedback)) {
 <a href="edit-comments.php?page=mollommanage">Start</a>
 <?php
 	if($apage != 0) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>">&laquo;Previous</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>"><?php _e('&laquo;Previous'); ?></a>
 <?php }
 	if($show_next) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>">Next&raquo;</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>"><?php _e('Next&raquo;'); ?></a>
 <?php } ?>
 </div>
 </div>
@@ -1058,7 +1058,7 @@ function mollom_check_comment($comment) {
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
 			if(get_option('mollom_site_policy')) {
-				wp_die($result, "Something went wrong!");
+				wp_die($result, __('Something went wrong!'));
 			} else {
 				return $comment;
 			}
@@ -1095,7 +1095,7 @@ function mollom_check_comment($comment) {
 		
 		elseif (function_exists('is_wp_error') && is_wp_error($result)) {
 			if(get_option('mollom_site_policy')) {
-				wp_die($result, 'Something went wrong...');
+				wp_die($result, __('Something went wrong...'));
 			} else {
 				return $comment;
 			}
@@ -1140,7 +1140,7 @@ function mollom_check_trackback($comment) {
 	// quit if an error was thrown else return to WP Comment flow
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, "Something went wrong!");
+			wp_die($result, __('Something went wrong!'));
 		} else {
 			return $comment;
 		}
@@ -1158,13 +1158,13 @@ function mollom_check_trackback($comment) {
 	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 		// kill the process here because of spam detection
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('spam', 'Mollom recognized your trackback as spam.');
+		_mollom_trackback_error('spam', __('Mollom recognized your trackback as spam.'));
 	}
 	
 	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 		// kill the process here because of unsure detection (Trackbacks don't get a CAPTCHA)
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('unsure', 'Mollom could not recognize your trackback as spam or ham.');
+		_mollom_trackback_error('unsure', __('Mollom could not recognize your trackback as spam or ham.'));
 	}
 		
 	elseif (function_exists('is_wp_error') && is_wp_error($result)) {
@@ -1201,6 +1201,9 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 * @return array The comment array passed by the pre_process hook 
 */
 function mollom_check_captcha($comment) {
+	// strip redundant slashes
+	$comment['comment_content'] = stripslashes($comment['comment_content']);
+	
 	if ($_POST['mollom_sessionid']) {
 		global $wpdb;
 	
@@ -1260,7 +1263,7 @@ function mollom_check_captcha($comment) {
 			$mollom_comment['author'] = $comment['comment_author'];
 			$mollom_comment['url'] = $comment['comment_author_url'];
 			$mollom_comment['email'] = $comment['comment_author_email'];
-			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
+			$mollom_comment['comment'] = $comment['comment_content'];
 			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
@@ -1282,7 +1285,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	$result = mollom('mollom.getAudioCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, 'Something went wrong...');
+			wp_die($result, __('Something went wrong...'));
 		}
 	}
 	
@@ -1292,7 +1295,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	$result = mollom('mollom.getImageCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, 'Something went wrong...');
+			wp_die($result, __('Something went wrong...'));
 		}
 	}
 
@@ -1487,7 +1490,7 @@ function mollom($method, $data = array()) {
 	}
 	
 	$mollom_error = new WP_Error();
-	$mollom_error->add(-6, "The Mollom servers could not be contacted at this time. Please try again.");
+	$mollom_error->add(-6, __('The Mollom servers could not be contacted at this time. Please try again.'));
 	return $mollom_error;
 }
 
