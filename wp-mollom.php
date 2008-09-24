@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.6.1-dev
+Version: 0.6.1
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -34,7 +34,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.6.0-dev' );
+define( 'MOLLOM_VERSION', '0.6.1' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 
@@ -45,9 +45,6 @@ define( 'MOLLOM_REDIRECT', 1200 );
 define( 'MOLLOM_ANALYSIS_HAM'     , 1);
 define( 'MOLLOM_ANALYSIS_SPAM'    , 2);
 define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
-
-// Location of the Incutio XML-RPC library which is integrated with Wordpress
-require_once(ABSPATH . '/wp-includes/class-IXR.php');
 
 /** 
 * mollom_activate
@@ -203,10 +200,9 @@ add_action('admin_menu','mollom_config_page');
 */
 function mollom_manage_page() {
 	global $submenu;
-	if ( isset( $submenu['edit-comments.php'] ) )
-		add_submenu_page('edit-comments.php', __('Caught Spam'), 'Mollom', 'moderate_comments', 'mollommanage', 'mollom_manage');
-	if ( function_exists('add_management_page') )
-		add_management_page(__('Caught Spam'), 'Mollom', 'moderate_comments', 'mollommanage', 'mollom_manage');
+	if ( isset( $submenu['edit-comments.php'] ) ) {
+		add_submenu_page('edit-comments.php', __('Mollom'), __('Mollom'), 'moderate_comments', 'mollommanage', 'mollom_manage');
+	}
 }
 add_action('admin_menu','mollom_manage_page');
 
@@ -216,8 +212,9 @@ add_action('admin_menu','mollom_manage_page');
 */
 function mollom_statistics_page() {
 	global $submenu;
-	if ( isset( $submenu['plugins.php'] ) )
-		add_submenu_page('plugins.php', __('Caught Spam'), 'Mollom', 'manage_options', 'mollommanage', 'mollom_statistics');
+	if ( isset( $submenu['edit-comments.php'] ) ) {
+		add_submenu_page('edit-comments.php', __('Mollom statistics'), __('Mollom statistics'), 'manage_options', 'mollomstats', 'mollom_statistics');
+	}
 }
 add_action('admin_menu','mollom_statistics_page');
 
@@ -280,7 +277,7 @@ pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
 <?php
 	} else {
 ?>
-<p><?php _e('The Mollom plugin is not configured. Please go to <strong>settings &gt; mollom</strong> and configure the plugin.'); ?></p>
+<p><?php _e('The Mollom plugin is not configured. Please go to <strong><a href="options-general.php?page=mollom-key-config">Settings &gt; Mollom</a></strong> and configure the plugin.'); ?></p>
 <?php
 	}
 ?>
@@ -513,7 +510,7 @@ function mollom_config() {
 				'wrongkey' => array('color' => 'd22', 'text' => __('The key you provided is wrong.')),
 				'mollomerror' => array('color' => 'd22', 'text' => __('Mollom error: ' . $errormsg)),
 				'networkerror' => array('color' =>'d22', 'text' => __('Network error: ' . $errormsg)),
-				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.'))); 		
+				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.')));
 	?>	
 <div class="wrap">
 <h2><?php _e('Mollom Configuration'); ?></h2>
@@ -554,7 +551,7 @@ function mollom_config() {
 	<p><?php _e('When in doubt, just leave this off.'); ?></p>
 	<p><?php _e('enable: '); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
 	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
-	<p class="submit"><input type="submit" value="Update options &raquo;" id="submit" name="submit"/></p>
+	<p class="submit"><input type="submit" value="<?php _e('Update options &raquo;'); ?>" id="submit" name="submit"/></p>
 </form>
 </div>
 </div>
@@ -898,7 +895,7 @@ if(!empty($feedback)) {
 <?php
 	if (!$comments) { ?>
 
-<p class="mollom-no-comments">There are no comments that can be moderated through Mollom.</p>
+<p class="mollom-no-comments"><?php _e('There are no comments that can be moderated through Mollom.'); ?></p>
 
 <?php } else { ?>
 
@@ -927,10 +924,10 @@ if(!empty($feedback)) {
 <a href="edit-comments.php?page=mollommanage">Start</a>
 <?php
 	if($apage != 0) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>">&laquo;Previous</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>"><?php _e('&laquo;Previous'); ?></a>
 <?php }
 	if($show_next) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>">Next&raquo;</a>
+	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>"><?php _e('Next&raquo;'); ?></a>
 <?php } ?>
 </div>
 </div>
@@ -1061,7 +1058,7 @@ function mollom_check_comment($comment) {
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
 			if(get_option('mollom_site_policy')) {
-				wp_die($result, "Something went wrong!");
+				wp_die($result, __('Something went wrong!'));
 			} else {
 				return $comment;
 			}
@@ -1098,7 +1095,7 @@ function mollom_check_comment($comment) {
 		
 		elseif (function_exists('is_wp_error') && is_wp_error($result)) {
 			if(get_option('mollom_site_policy')) {
-				wp_die($result, 'Something went wrong...');
+				wp_die($result, __('Something went wrong...'));
 			} else {
 				return $comment;
 			}
@@ -1143,7 +1140,7 @@ function mollom_check_trackback($comment) {
 	// quit if an error was thrown else return to WP Comment flow
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, "Something went wrong!");
+			wp_die($result, __('Something went wrong!'));
 		} else {
 			return $comment;
 		}
@@ -1161,13 +1158,13 @@ function mollom_check_trackback($comment) {
 	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 		// kill the process here because of spam detection
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('spam', 'Mollom recognized your trackback as spam.');
+		_mollom_trackback_error('spam', __('Mollom recognized your trackback as spam.'));
 	}
 	
 	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 		// kill the process here because of unsure detection (Trackbacks don't get a CAPTCHA)
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('unsure', 'Mollom could not recognize your trackback as spam or ham.');
+		_mollom_trackback_error('unsure', __('Mollom could not recognize your trackback as spam or ham.'));
 	}
 		
 	elseif (function_exists('is_wp_error') && is_wp_error($result)) {
@@ -1204,6 +1201,9 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 * @return array The comment array passed by the pre_process hook 
 */
 function mollom_check_captcha($comment) {
+	// strip redundant slashes
+	$comment['comment_content'] = stripslashes($comment['comment_content']);
+	
 	if ($_POST['mollom_sessionid']) {
 		global $wpdb;
 	
@@ -1263,7 +1263,7 @@ function mollom_check_captcha($comment) {
 			$mollom_comment['author'] = $comment['comment_author'];
 			$mollom_comment['url'] = $comment['comment_author_url'];
 			$mollom_comment['email'] = $comment['comment_author_email'];
-			$mollom_comment['comment'] = htmlspecialchars_decode(stripslashes($comment['comment_content']));
+			$mollom_comment['comment'] = $comment['comment_content'];
 			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
@@ -1285,7 +1285,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	$result = mollom('mollom.getAudioCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, 'Something went wrong...');
+			wp_die($result, __('Something went wrong...'));
 		}
 	}
 	
@@ -1295,7 +1295,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	$result = mollom('mollom.getImageCaptcha', $data);	
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			wp_die($result, 'Something went wrong...');
+			wp_die($result, __('Something went wrong...'));
 		}
 	}
 
@@ -1384,7 +1384,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
 	<input type="hidden" value="<?php echo $mollom_comment['url']; ?>" name="url" />
 	<input type="hidden" value="<?php echo $mollom_comment['email']; ?>" name="email" />
-	<input type="hidden" value="<?php echo htmlspecialchars($mollom_comment['comment']); ?>" name="comment" /></p>
+	<input type="hidden" value="<?php echo htmlentities($mollom_comment['comment']); ?>" name="comment" /></p>
 	<p><input type="submit" value="Submit" class="submit" /></p>
 </form>
 </body>
@@ -1432,25 +1432,21 @@ function _mollom_save_had_captcha($comment_ID) {
 * @return mixed Either a WP_Error on error or a mixed return depending on the called API function
 */
 function mollom($method, $data = array()) {
+	// Location of the Incutio XML-RPC library which is integrated with Wordpress
+	// lazy loading: only if this function gets called
+	require_once(ABSPATH . '/wp-includes/class-IXR.php');
+	// let's set the user agent string
 	$user_agent = MOLLOM_USER_AGENT;
+	// let's fetch us some servers
 	if (get_option('mollom_servers') == NULL) {
-		$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);
-		$mollom_client->useragent = $user_agent;
-		
-		if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
-				// Something went wrong! Return the error
-				$mollom_error = new WP_Error();
-				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-				return $mollom_error;
+		$result = _mollom_retrieve_server_list();
+		if (function_exists('is_wp_error') && is_wp_error($result)) {
+			return $result;
 		}
-
-		$servers = $mollom_client->getResponse();
-		
-		update_option('mollom_servers', implode('#', $servers));
-	} else {
-		$servers = explode('#', get_option('mollom_servers'));	
 	}
+	$servers = explode('#', get_option('mollom_servers'));	
 	
+	// fail-over/loadbalancing act
 	foreach ($servers as $server) {
 		$mollom_client = new IXR_Client($server . '/' . MOLLOM_API_VERSION);
 		$mollom_client->useragent = $user_agent;
@@ -1458,22 +1454,19 @@ function mollom($method, $data = array()) {
 		$result = $mollom_client->query($method, $data + _mollom_authenticate());
 	
 		if($mollom_client->getErrorCode()) {
-			// refresh the serverlist
+			// refresh the server list and try again
 			if ($mollom_client->getErrorCode() == MOLLOM_REFRESH) {
-				$mollom_client = new IXR_Client('http://xmlrpc.mollom.com/'. MOLLOM_API_VERSION);
-		
-				if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
-					$mollom_error = new WP_Error();
-					$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-					return $mollom_error;
+				$result = _mollom_retrieve_server_list();
+				if (function_exists('is_wp_error') && is_wp_error($result)) {
+					return $result;
+				} else {
+					$servers = explode('#', get_option('mollom_servers'));
 				}
-		
-				$servers = $mollom_client->getResponse();
-				update_option('mollom_servers', implode('#', $servers));				
 			}
-			
+						
 			// redirect to a different server
 			else if ($mollom_client->getErrorCode() == MOLLOM_REDIRECT) {
+				// $server is overloaded, let's try the next one
 				// do nothing, travel through the loop again and try the next server in the list
 			}
 
@@ -1484,18 +1477,54 @@ function mollom($method, $data = array()) {
 				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
 				return $mollom_error;
 			}
-						
-			// Error of a different kind (network, etc)
-			else {
-				$mollom_error = new WP_error();
-				$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
-				return $mollom_error;
-			}
 		} else {
 			// return a response if all went well
 			return $mollom_client->getResponse();
 		}
 	}
+
+	// renew the server cache. Maybe this will fix things next time.
+	$result = _mollom_retrieve_server_list();
+	if (function_exists('is_wp_error') && is_wp_error($result)) {
+		return $result;
+	}
+	
+	$mollom_error = new WP_Error();
+	$mollom_error->add(-6, __('The Mollom servers could not be contacted at this time. Please try again.'));
+	return $mollom_error;
+}
+
+/**
+* _mollom_retrieve_server_list
+* retrieves a list of servers and caches it in the database
+* @return boolean true if a list was succesfully retrieved and stored. Otherwise, Mollom breaks here.
+**/
+function _mollom_retrieve_server_list() {
+	// hard coded list cfr API documentation, section 9
+	$servers = array(
+				'http://xmlrpc1.mollom.com/',
+				'http://xmlrpc2.mollom.com/',
+				'http://xmlrpc3.mollom.com/'
+			);
+	
+	$user_agent = MOLLOM_USER_AGENT;
+	
+	foreach($servers as $server) {
+		$mollom_client = new IXR_Client($server . MOLLOM_API_VERSION);
+		$mollom_client->useragent = $user_agent;
+		
+		if(!$mollom_client->query('mollom.getServerList', _mollom_authenticate())) {
+			// Something went wrong! Let's try the next one in the list
+		} else {
+			$servers = $mollom_client->getResponse();
+			update_option('mollom_servers', implode('#', $servers));
+			return true;
+		}
+	}
+	
+	$mollom_error = new WP_Error();
+	$mollom_error->add($mollom_client->getErrorCode(), $mollom_client->getErrorMessage());
+	return $mollom_error;
 }
 
 /** 
