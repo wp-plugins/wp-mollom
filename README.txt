@@ -4,16 +4,15 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
-Tested up to: 2.6.1
+Tested up to: 2.6.2
 Stable tag: 0.6.1
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
 == Description ==
 
-<a href="http://www.mollom.com">Mollom</a> protects your website against comment and trackback spam. The difference
-with other spam services is that Mollom takes care of everything. The idea is to relieve you, the administrator, 
-editor, maintainer,... of whatever moderation or clean up tasks you would normally need to perform in order to keep 
+<a href="http://www.mollom.com">Mollom</a> protects your website against comment and trackback spam. Mollom differs from other spam deterring services because it takes care of everything. The idea is to relieve you, the administrator, 
+editor, maintainer,... of any moderation or clean up tasks you would normally need to perform in order to keep 
 your blog spamfree.
 
 Mollom combines the power of intelligent text analysis to automatically filter spam with the efficiency of a safe
@@ -23,8 +22,9 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 == Installation ==
 
+* Register your website at http://mollom.com
 * Disable akismet or other spamdeterring plugins you are currently using
-* Drop wp-mollom.php in /wp-content/plugins.
+* Drop the wp-mollom/ folder in /wp-content/plugins.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
 * Enter the public/private key combination you got after registering with Mollom.
@@ -33,7 +33,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 == Configuration ==
 After you have set the public/private key combination, Mollom will automatically protect your blog. The plugin takes
-care of everything so you don't have to worry about moderation, false positives,... and you can focus on what's really
+care of everything. You don't have to worry about moderation, false positives,... and you can focus on what's really
 important: creating great content and interact with your visitors in a proper fashion.
 
 Extra options in the configuration panel:
@@ -56,6 +56,8 @@ to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is save
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
 
 == Moderation ==
+
+So we lied a bit...
 
 Moderation is still possible. You can moderate comments through the Mollom Manage Module. You can find the module
 in the 'Comments' menu of your Wordpress administration board. The default Wordpress moderation queue is still 
@@ -97,12 +99,10 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
-* The backend handling and storing of data has been significantly changed. The plugin will try to convert the 
-  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
-  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned 
-  to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
-* The plugin works with Wordpress 2.6 but doesn't yet support the SSL extensions released with Wordpress 2.6.
-* The plugin is compatible with version 2.2.2 of WP OpenID.
+* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
+  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+* The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
+* The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
 
 == Screenshots ==
 
@@ -114,6 +114,8 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 5. screenshot-6.png
 
 == Changelog ==
+* 2008/XX - 0.6.2
+ * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
 * 2008/09/24 - 0.6.1
  * fixed: division by 0 error on line 317
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
