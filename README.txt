@@ -5,7 +5,7 @@ Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
 Tested up to: 2.6.2
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
@@ -48,12 +48,19 @@ Extra options in the configuration panel:
   though, but it improves accuracy of the plugin. Please refer to the <a href="http://www.mollom.com/support">Support
   section</a> for detailed information.
 
+
 == Usage ==
 
+
+
 Mollom takes care of everything. If a comment is flagged as spam it will be blocked. If the comment is ham, it will
+ 
 just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
+
 to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
+
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
+
 
 == Moderation ==
 
@@ -114,9 +121,14 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 5. screenshot-6.png
 
 == Changelog ==
-* 2008/XX - 0.6.2
+
+* 2008/XX - 0.6.3
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
+
+* 2008/11/10 - 0.6.2
+ * fixed: wrong feedback qualifiers (spam, profanity, unwanted, low-quality) were transmitted to Mollom upon moderation
 * 2008/09/24 - 0.6.1
+
  * fixed: division by 0 error on line 317
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
  * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
