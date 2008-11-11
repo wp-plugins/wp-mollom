@@ -48,19 +48,12 @@ Extra options in the configuration panel:
   though, but it improves accuracy of the plugin. Please refer to the <a href="http://www.mollom.com/support">Support
   section</a> for detailed information.
 
-
 == Usage ==
 
-
-
 Mollom takes care of everything. If a comment is flagged as spam it will be blocked. If the comment is ham, it will
- 
 just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
-
 to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
-
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
-
 
 == Moderation ==
 
@@ -106,8 +99,10 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
-* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
-  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  
+  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
+  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. 
+  This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
 * The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
 
@@ -124,11 +119,9 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * 2008/XX - 0.6.3
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
-
 * 2008/11/10 - 0.6.2
  * fixed: wrong feedback qualifiers (spam, profanity, unwanted, low-quality) were transmitted to Mollom upon moderation
 * 2008/09/24 - 0.6.1
-
  * fixed: division by 0 error on line 317
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
  * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
