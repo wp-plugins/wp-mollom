@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.6.1
+Version: 0.6.3-dev
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -18,6 +18,7 @@ Version history:
 - 20 juli 2008: small bugfix release
 - 24 augustus 2008: third public release
 - 24 september 2008: small bugfix release
+- 10 november 2008: small bugfix release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -35,7 +36,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.6.2-dev' );
+define( 'MOLLOM_VERSION', '0.6.3-dev' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
@@ -191,8 +192,9 @@ register_deactivation_hook(__FILE__, 'mollom_deactivate');
  
 function mollom_init() {
 	// load the text domain for localization
-	load_plugin_textdomain(MOLLOM_I8N);}add_action('init', 'mollom_init');
-
+	load_plugin_textdomain(MOLLOM_I8N, false, dirname(plugin_basename(__FILE__)));
+}
+add_action('init', 'mollom_init');
 /** 
 * mollom_config_page
 * hook the config page in the Wordpress administration module 
@@ -224,7 +226,7 @@ add_action('admin_menu','mollom_manage_page');
 function mollom_statistics_page() {
 	global $submenu;
 	if ( isset( $submenu['edit-comments.php'] ) ) {
-		add_submenu_page('edit-comments.php', __('Mollom statistics', MOLLOM_I8N), __('Mollom statistics', MOLLOM_I8N), 'manage_options', 'mollomstats', 'mollom_statistics');
+		add_submenu_page('edit-comments.php', __('Mollom statistics', 'wp-mollom'), __('Mollom statistics', 'wp-mollom'), 'manage_options', 'mollomstats', 'mollom_statistics');
 	}
 }
 add_action('admin_menu','mollom_statistics_page');
@@ -515,13 +517,15 @@ function mollom_config() {
 	if (is_bool($result)) {
 		$ms[] = 'correctkey';
 	}
-		
-	$messages = array('privatekeyempty' => array('color' => 'aa0', 'text' => __('Your private key is empty.', MOLLOM_I8N)),
+	
+	$messages = array(
+				'privatekeyempty' => array('color' => 'aa0', 'text' => __('Your private key is empty.', MOLLOM_I8N)),
 				'publickeyempty' => array('color' => 'aa0', 'text' => __('Your public key is empty.', MOLLOM_I8N)),
 				'wrongkey' => array('color' => 'd22', 'text' => __('The key you provided is wrong.', MOLLOM_I8N)),
-				'mollomerror' => array('color' => 'd22', 'text' => sprintf(__('Mollom error: %s', MOLLOM_I8N), $errormsg),
-				'networkerror' => array('color' =>'d22', 'text' => sprintf(__('Network error: %s', MOLLOM_I8N), $errormsg),
-				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.', MOLLOM_I8N)));
+				'mollomerror' => array('color' => 'd22', 'text' => sprintf(__('Mollom error: %s', MOLLOM_I8N), $errormsg)),
+				'networkerror' => array('color' =>'d22', 'text' => sprintf(__('Network error: %s', MOLLOM_I8N), $errormsg)),
+				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.', MOLLOM_I8N))
+				);
 	?>	
 <div class="wrap">
 <h2><?php _e('Mollom Configuration', MOLLOM_I8N); ?></h2>
@@ -586,22 +590,8 @@ function _mollom_send_feedback($action, $comment_ID) {
 		case $action == "spam":
 		case $action == "profanity":
 		case $action == "unwanted":
-		case $action == "lowquality":
-			switch ($action) {
-				case $action == "spam":
-					$data = array('feedback' => 'profanity', 'session_id' => $mollom_sessionid);
-					break;
-				case $action == "profanity":
-					$data = array('feedback' => 'unwanted', 'session_id' => $mollom_sessionid);
-					break;
-				case $action == "unwanted":
-					$data = array('feedback' => 'spam', 'session_id' => $mollom_sessionid);
-					break;
-				case $action == "lowquality";
-					$data = array('feedback' => 'low-quality', 'session_id' => $mollom_sessionid);
-					break;
-			}
-			
+		case $action == "low-quality":
+			$data = array('feedback' => $action, 'session_id' => $mollom_sessionid);			
 			$result = mollom('mollom.sendFeedback', $data);
 				
 			if($result) {
@@ -946,7 +936,7 @@ if(!empty($feedback)) {
 	
 		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=spam', 'mollom-moderate-comment'));
 		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=profanity', 'mollom-moderate-comment'));
-		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
+		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=low-quality', 'mollom-moderate-comment'));
 		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unwanted', 'mollom-moderate-comment')); 
 		$approve = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=approve', 'mollom-moderate-comment')); 
 		$unapprove = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unapprove', 'mollom-moderate-comment')); 
@@ -1012,7 +1002,7 @@ function mollom_moderate_comment($comment_ID) {
 	if (function_exists('current_user_can') && current_user_can('manage_options')) {
 		$spam = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=spam', 'mollom-moderate-comment'));
 		$profanity = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $ccomment_ID . '&maction=profanity', 'mollom-moderate-comment'));
-		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=lowquality', 'mollom-moderate-comment'));
+		$lowquality = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=low-quality', 'mollom-moderate-comment'));
 		$unwanted = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=unwanted', 'mollom-moderate-comment'));
 		$approved = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=approve', 'mollom-moderate-comment'));		
 		$unapproved = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&amp;c=' . $comment_ID . '&maction=unapprove', 'mollom-moderate-comment'));
