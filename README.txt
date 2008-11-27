@@ -24,7 +24,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 * Register your website at http://mollom.com
 * Disable akismet or other spamdeterring plugins you are currently using
-* Drop the wp-mollom/ folder in /wp-content/plugins.
+* Drop the wp-mollom/ folder (the one with the wp-mollom.php and wp-mollom-xx_XX.mo files) in /wp-content/plugins.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
 * Enter the public/private key combination you got after registering with Mollom.
