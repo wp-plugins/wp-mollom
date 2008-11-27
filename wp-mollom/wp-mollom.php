@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.6.3-dev
+Version: 0.7.0
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -19,6 +19,7 @@ Version history:
 - 24 augustus 2008: third public release
 - 24 september 2008: small bugfix release
 - 10 november 2008: small bugfix release
+- 27 november 2008: fourth public release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -36,7 +37,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.6.3-dev' );
+define( 'MOLLOM_VERSION', '0.7.0' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
@@ -391,13 +392,14 @@ if ($css) {
 
 </style>
 <?php } ?>
+
 <div id="mollom-bar-graph">
-	<p><?php sprintf(__('WP Mollom has processed a total of <strong>%1$d</strong> messages.', MOLLOM_I8N), $count_percentage['total']) ?>
+	<p><?php echo sprintf(__('WP Mollom has processed a total of <strong>%1$d</strong> messages.', MOLLOM_I8N), $count_percentage['total']); ?>
 	<ul>
-		<li><?php _e('Ham: ', MOLLOM_I8N); ?><div class="graph" title="<?php sprintf(__('%d messages cleared as ham.', MOLLOM_I8N), $count_nominal['ham']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['ham']; ?>%;"><?php echo $count_percentage['ham']; ?>%</strong></div></li>
-		<li><?php _e('Spam: ', MOLLOM_I8N); ?><div class="graph" title="<?php sprintf(__('%d messages blocked as spam.', MOLLOM_I8N), $count_nominal['spam']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['spam']; ?>%;"><?php echo $count_percentage['spam']; ?>%</strong></div></li>
-		<li><?php _e('Unsure: ', MOLLOM_I8N); ?><div class="graph" title="<?php sprintf(__('%d messages passed a captcha succesfully.', MOLLOM_I8N), $count_nominal['unsure']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['unsure']; ?>%;"><?php echo $count_percentage['unsure']; ?>%</strong></div></li>
-		<li><?php _e('Moderated: ', MOLLOM_I8N); ?><div class="graph" title="<?php sprintf(__('%d messages had to be manually moderated by you.', MOLLOM_I8N), $count_nominal['moderated']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['moderated']; ?>%;"><?php echo $count_percentage['moderated']; ?>%</strong></div></li>
+		<li><?php _e('Ham: ', MOLLOM_I8N); ?><div class="graph" title="<?php echo sprintf(__('%d messages cleared as ham.', MOLLOM_I8N), $count_nominal['ham']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['ham']; ?>%;"><?php echo $count_percentage['ham']; ?>%</strong></div></li>
+		<li><?php _e('Spam: ', MOLLOM_I8N); ?><div class="graph" title="<?php echo sprintf(__('%d messages blocked as spam.', MOLLOM_I8N), $count_nominal['spam']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['spam']; ?>%;"><?php echo $count_percentage['spam']; ?>%</strong></div></li>
+		<li><?php _e('Unsure: ', MOLLOM_I8N); ?><div class="graph" title="<?php echo sprintf(__('%d messages passed a captcha succesfully.', MOLLOM_I8N), $count_nominal['unsure']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['unsure']; ?>%;"><?php echo $count_percentage['unsure']; ?>%</strong></div></li>
+		<li><?php _e('Moderated: ', MOLLOM_I8N); ?><div class="graph" title="<?php echo sprintf(__('%d messages had to be manually moderated by you.', MOLLOM_I8N), $count_nominal['moderated']); ?>"><strong class="bar" style="width: <?php echo $count_percentage['moderated']; ?>%;"><?php echo $count_percentage['moderated']; ?>%</strong></div></li>
 	</ul>
 </div>
 <?php
@@ -893,7 +895,7 @@ if(!empty($feedback)) {
 <?php
 	if (!$comments) { ?>
 
-<p class="mollom-no-comments"><?php _e('There are no comments that can be moderated through Mollom.', MOLLOM_I8N); ?></p>
+<div class="updated fade"><p><strong><?php _e('There are no comments that can be moderated through Mollom.', MOLLOM_I8N); ?></strong</p></div>
 
 <?php } else { ?>
 
@@ -1302,9 +1304,9 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
+<head profile="http://gmpg.org/xfn/11">
+	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
 	<title><?php _e('WordPress &raquo; Mollom CAPTCHA test', MOLLOM_I8N); ?></title>
 	<link rel="stylesheet" href="<?php get_bloginfo('siteurl'); ?>/wp-admin/css/install.css" type="text/css" />
 	<style media="screen" type="text/css">
