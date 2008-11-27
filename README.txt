@@ -4,8 +4,8 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
-Tested up to: 2.6.2
-Stable tag: 0.6.2
+Tested up to: 2.6.5
+Stable tag: 0.7.0
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
@@ -24,7 +24,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 * Register your website at http://mollom.com
 * Disable akismet or other spamdeterring plugins you are currently using
-* Drop the wp-mollom/ folder in /wp-content/plugins.
+* Drop the wp-mollom/ folder (the one with the wp-mollom.php and wp-mollom-xx_XX.mo files) in /wp-content/plugins.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
 * Enter the public/private key combination you got after registering with Mollom.
@@ -48,19 +48,12 @@ Extra options in the configuration panel:
   though, but it improves accuracy of the plugin. Please refer to the <a href="http://www.mollom.com/support">Support
   section</a> for detailed information.
 
-
 == Usage ==
 
-
-
 Mollom takes care of everything. If a comment is flagged as spam it will be blocked. If the comment is ham, it will
- 
 just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
-
 to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
-
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
-
 
 == Moderation ==
 
@@ -106,8 +99,10 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
-* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
-  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  
+  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
+  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. 
+  This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
 * The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
 
@@ -122,13 +117,12 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 == Changelog ==
 
-* 2008/XX - 0.6.3
+* 2008/11/27 - 0.7.0
+ * fixed: hover over statistics bar graph wouldn't yield numerical data
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
-
 * 2008/11/10 - 0.6.2
  * fixed: wrong feedback qualifiers (spam, profanity, unwanted, low-quality) were transmitted to Mollom upon moderation
 * 2008/09/24 - 0.6.1
-
  * fixed: division by 0 error on line 317
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
  * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
@@ -152,7 +146,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
  * improved: implemented wpdb->prepare() in vunerable queries
  * improved: mollom_activate() function now more robust
- * changed: mollom_author_ip() reflects changes in the API documentation. This is now 'reverse proxy aware'
+ * changed: mollom_author_ip() reflects changes in the API documentation. This function is now 'reverse proxy aware'
 * 2008/06/30 - 0.5.1
  * fixed: issues with the captcha page not being rendered correctly
  * added: mollom_manage_wp_queue() function which deals with Mollom feedback from the default WP moderation queue
