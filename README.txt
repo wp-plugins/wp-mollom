@@ -23,8 +23,9 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 == Installation ==
 
 * Register your website at http://mollom.com
+
 * Disable akismet or other spamdeterring plugins you are currently using
-* Drop the wp-mollom/ folder (the one with the wp-mollom.php and wp-mollom-xx_XX.mo files) in /wp-content/plugins.
+* Drop the wp-mollom/ folder in /wp-content/plugins.
 * Activate the plugin in your dashboard.
 * Go to the 'Mollom configuration' panel which you will find through the 'Settings' menu.
 * Enter the public/private key combination you got after registering with Mollom.
@@ -118,6 +119,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 == Changelog ==
 
 * 2008/11/27 - 0.7.0
+ 
  * fixed: hover over statistics bar graph wouldn't yield numerical data
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
 * 2008/11/10 - 0.6.2
