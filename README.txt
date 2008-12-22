@@ -4,7 +4,7 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
-Tested up to: 2.6.5
+Tested up to: 2.7.0
 Stable tag: 0.7.0
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
@@ -118,31 +118,47 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 == Changelog ==
 
+* 2008/12/xx - 0.7.1
+ * fixed: menu's didn't show in the new Wordpress 2.7 administration panels
+ * fixed: non-western character sets are now handled properly in the captcha form.
+ * added: the plugin is now compatible with the new plugin uninstall features in Wordpress 2.7
 * 2008/11/27 - 0.7.0
  
  * fixed: hover over statistics bar graph wouldn't yield numerical data
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
+
 * 2008/11/10 - 0.6.2
  * fixed: wrong feedback qualifiers (spam, profanity, unwanted, low-quality) were transmitted to Mollom upon moderation
 * 2008/09/24 - 0.6.1
  * fixed: division by 0 error on line 317
+ 
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
+ 
  * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
+ 
  * changed: mollom statistics are now hooked in edit-comments.php instead of plugins.php
+ 
  * added: _mollom_retrieve_server_list() function now handles all getServerList calls
+
 * 2008/08/24 - 0.6.0
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
  * fixed: broken bulk moderation of comments is now fixed
  * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
+ 
  * fixed: the session_id is now passed correctly to _save_session() after the captcha is checked.
  * improved: more verbose status messages report when using the Mollom Manage module
  * improved: cleaned up some deprecated functions
  * improved: handling of Mollom feedback in _mollom_send_feedback() function
+ 
  * added: approve and unapprove options in the Mollom Manage module
+ 
  * added: link to the originating post in the Mollom Manage module
+ 
  * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module
+ 
  * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API
+ 
  * added: detailed statistics. You can find these under Plugins > Mollom
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()

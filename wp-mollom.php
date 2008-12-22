@@ -1386,7 +1386,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
 	<input type="hidden" value="<?php echo $mollom_comment['url']; ?>" name="url" />
 	<input type="hidden" value="<?php echo $mollom_comment['email']; ?>" name="email" />
-	<input type="hidden" value="<?php echo htmlentities($mollom_comment['comment']); ?>" name="comment" /></p>
+	<input type="hidden" value="<?php echo mb_convert_encoding($mollom_comment['comment'], "HTML-ENTITIES","auto"); ?>" name="comment" /></p>
 	<p><input type="submit" value="<?php _e('Submit', MOLLOM_I8N); ?>" class="submit" /></p>
 </form>
 <p><?php _e('You want Mollom also on your own Wordpress blog? Register with <a href="http://mollom.com">Mollom</a>, download and install <a href="http://wordpress.org/extend/plugins/wp-mollom">the plugin</a>!', MOLLOM_I8N); ?></p>
