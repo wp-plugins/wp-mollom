@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.7.0
+Version: 0.7.1-dev
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -37,7 +37,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.7.0' );
+define( 'MOLLOM_VERSION', '0.7.1-dev' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
@@ -55,7 +55,7 @@ define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
 * activate the plugin and install stuff upon first activation
 */
 function mollom_activate() {
-	global $wpdb;
+	global $wpdb, $wp_db_version;
 
 	// create a new table to store mollom sessions if it doesn't exist
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
@@ -98,7 +98,8 @@ function mollom_activate() {
 		add_option('mollom_count_moderated', 0);
 	if(!get_option('mollom_site_policy'))
 		add_option('mollom_site_policy', true);
-	if(!get_option('mollom_dbrestore'))
+	// deprecated. Backward compatibility only
+	if((!get_option('mollom_dbrestore')) && ($wp_db_version < 8645))
 		add_option('mollom_dbrestore', false);
 	if(!get_option('mollom_reverseproxy'))
 		add_option('mollom_reverseproxy', false);
@@ -159,10 +160,11 @@ register_activation_hook(__FILE__, 'mollom_activate');
 * restore database to previous state upon deactivation 
 */
 function mollom_deactivate() {
-	global $wpdb;
-
+	global $wpdb, $wp_db_version;
+	
 	// only delete if full restore is allowed
-	if(get_option('mollom_dbrestore')) {
+	// Deprecated for WP 2.7 and above
+	if ((get_option('mollom_dbrestore')) && (8645 > $wp_db_version)) {
 		delete_option('mollom_private_key');
 		delete_option('mollom_public_key');
 		delete_option('mollom_servers');
@@ -190,7 +192,6 @@ register_deactivation_hook(__FILE__, 'mollom_deactivate');
  * mollom_init
  * This function runs all logic needed on the init hook
  */
- 
 function mollom_init() {
 	// load the text domain for localization
 	load_plugin_textdomain(MOLLOM_I8N, false, dirname(plugin_basename(__FILE__)));
@@ -202,6 +203,7 @@ add_action('init', 'mollom_init');
 */
 function mollom_config_page() {
 	global $submenu;
+	
 	if ((function_exists('add_submenu_page')) && (isset($submenu['options-general.php']))) {
 		add_submenu_page('options-general.php', __('Mollom', MOLLOM_I8N), __('Mollom', MOLLOM_I8N), 'manage_options', 'mollom-key-config', 'mollom_config');
 	}
@@ -209,28 +211,23 @@ function mollom_config_page() {
 add_action('admin_menu','mollom_config_page');
 
 /** 
-* mollom_manage_page
+* mollom_admin_pages
 * hook the manage page in the Wordpress administration module
 */
-function mollom_manage_page() {
-	global $submenu;
-	if ( isset( $submenu['edit-comments.php'] ) ) {
-		add_submenu_page('edit-comments.php', __('Mollom', MOLLOM_I8N), __('Mollom', MOLLOM_I8N), 'moderate_comments', 'mollommanage', 'mollom_manage');
-	}
+function mollom_admin_pages() {	
+	if (function_exists('add_comments_page')) {
+		add_comments_page(__('Mollom', MOLLOM_I8N), __('Mollom', MOLLOM_I8N), 'moderate_comments', 'mollommanage', 'mollom_manage');
+		add_comments_page(__('Mollom statistics', 'wp-mollom'), __('Mollom statistics', 'wp-mollom'), 'manage_options', 'mollomstats', 'mollom_statistics');
+	} else {
+		// Deprecated. Backward compatibility.
+		global $submenu;
+		if ( isset( $submenu['edit-comments.php'] ) ) {
+			add_submenu_page('edit-comments.php', __('Mollom', MOLLOM_I8N), __('Mollom', MOLLOM_I8N), 'moderate_comments', 'mollommanage', 'mollom_manage');
+			add_submenu_page('edit-comments.php', __('Mollom statistics', 'wp-mollom'), __('Mollom statistics', 'wp-mollom'), 'manage_options', 'mollomstats', 'mollom_statistics');
+		}
+	}	
 }
-add_action('admin_menu','mollom_manage_page');
-
-/**
-* mollom_statistics_page
-* hook the statistics page in the Wordpress administration module
-*/
-function mollom_statistics_page() {
-	global $submenu;
-	if ( isset( $submenu['edit-comments.php'] ) ) {
-		add_submenu_page('edit-comments.php', __('Mollom statistics', 'wp-mollom'), __('Mollom statistics', 'wp-mollom'), 'manage_options', 'mollomstats', 'mollom_statistics');
-	}
-}
-add_action('admin_menu','mollom_statistics_page');
+add_action('admin_menu','mollom_admin_pages');
 
 /** 
 * _mollom_set_plugincount
@@ -288,18 +285,16 @@ play="true" loop="false" allowScriptAccess="sameDomain"
 type="application/x-shockwave-flash"
 pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
 
-<?php
-	} else {
-?>
-<p><?php _e('The Mollom plugin is not configured. Please go to <strong><a href="options-general.php?page=mollom-key-config">Settings &gt; Mollom</a></strong> and configure the plugin.', MOLLOM_I8N); ?></p>
-<?php
-	}
-?>
 <h3><?php _e('What is happening over here?', MOLLOM_I8N); ?></h3>
 <p><?php _e('The plugin keeps some statistics of it\'s own. These are stored in the database. These values represent the number of messages that the plugin has succesfully parsed.', MOLLOM_I8N); ?></p>
 <?php mollom_graphs(); ?>
 </div>
 <?php
+	} else {
+?>
+<div class="error"><p><?php _e('The Mollom plugin is not configured. Please go to <strong><a href="options-general.php?page=mollom-key-config">Settings &gt; Mollom</a></strong> and configure the plugin.', MOLLOM_I8N); ?></p></div>
+<?php
+	}
 }
 
 /**
@@ -410,7 +405,7 @@ if ($css) {
 * Handles the configuration  on your blog(keys, options,...) 
 */
 function mollom_config() {	
-	global $wpdb;
+	global $wpdb, $wp_db_version;
 	
 	$ms = array();
 	$result = '';
@@ -459,12 +454,15 @@ function mollom_config() {
 		}
 		
 		// set restore of database (purge all mollom data)
-		if(isset($_POST['mollomrestore'])) {
-			if ($_POST['mollomrestore'] == on) {
-				update_option('mollom_dbrestore', true);
+		// deprecated. Backward compatibility only.
+		if ($wp_db_version < 8645) {
+			if(isset($_POST['mollomrestore'])) {
+				if ($_POST['mollomrestore'] == on) {
+					update_option('mollom_dbrestore', true);
+				}
+			} else {
+					update_option('mollom_dbrestore', false);
 			}
-		} else {
-				update_option('mollom_dbrestore', false);
 		}
 
 		// set restore of database (purge all mollom data)
@@ -559,8 +557,12 @@ function mollom_config() {
 	<p><input type="text" size="35" maxlength="32" name="mollom-private-key" id="mollom-private-key" value="<?php echo get_option('mollom_private_key'); ?>" /></p>
 	<h3><label><?php _e('Policy mode', MOLLOM_I8N); ?></label></h3>
 	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
+	<?php 
+		if ( 8645 > $wp_db_version ) { // deprecated option (< WP 2.7) 
+	?>
 	<h3><label><?php _e('Restore', MOLLOM_I8N); ?></label></h3>
 	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
+	<?php } ?>
 	<h3><label><?php _e('Reverse proxy', MOLLOM_I8N); ?></label></h3>
 	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.'); ?></p>
 	<p><?php _e('When in doubt, just leave this off.', MOLLOM_I8N); ?></p>
@@ -895,7 +897,7 @@ if(!empty($feedback)) {
 <?php
 	if (!$comments) { ?>
 
-<div class="updated fade"><p><strong><?php _e('There are no comments that can be moderated through Mollom.', MOLLOM_I8N); ?></strong</p></div>
+<div class="updated"><p><strong><?php _e('There are no comments that can be moderated through Mollom.', MOLLOM_I8N); ?></strong</p></div>
 
 <?php } else { ?>
 
