@@ -1046,7 +1046,7 @@ function mollom_check_comment($comment) {
 	}
 	
 	$user = wp_get_current_user();
-	
+			
 	// only if the user is registered, there is no active session
 	if (!$_POST['mollom_sessionid'] && !$user->ID) {
 		$mollom_comment_data = array('post_body' => $comment['comment_content'],
@@ -1084,13 +1084,8 @@ function mollom_check_comment($comment) {
 		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 			// show a CAPTCHA and and set the count of blocked messages
 			_mollom_set_plugincount("spam");
-			$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
-									'mollom_sessionid' => $result['session_id'],
-									'author' => $comment['comment_author'],
-									'url' => $comment['comment_author_url'],
-									'email' => $comment['comment_author_email'],
-									'comment' => $comment['comment_content']);
-
+			$mollom_comment = _mollom_set_fields($_POST, $comment);
+			$mollom_comment['mollom_sessionid'] = $result['session_id'];
 			mollom_show_captcha('', $mollom_comment);
 			die();
 		}
@@ -1215,15 +1210,8 @@ function mollom_check_captcha($comment) {
 		$mollom_audio_session = $_POST['mollom_audio_session'];
 
 		if ($solution == '') {
-			$message = __('You didn\'t fill out all the required fields, please try again', MOLLOM_I8N);
-			
-			$mollom_comment['mollom_sessionid'] = $mollom_sessionid;
-			$mollom_comment['comment_post_ID'] = $comment['comment_post_ID'];
-			$mollom_comment['author'] = $comment['comment_author'];
-			$mollom_comment['url'] = $comment['comment_author_url'];
-			$mollom_comment['email'] = $comment['comment_author_email'];
-			$mollom_comment['comment'] = $comment['comment_content'];
-
+			$message = __('You didn\'t fill out all the required fields, please try again', MOLLOM_I8N);			
+			$mollom_comment = _mollom_set_fields($_POST, $comment);
 			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
@@ -1260,12 +1248,7 @@ function mollom_check_captcha($comment) {
 		else if (!$result) {
 			// let's be forgiving and provide with a new CAPTCHA
 			$message = __('The solution you submitted to the CAPTCHA was incorrect. Please try again...', MOLLOM_I8N);
-			$mollom_comment['mollom_sessionid'] = $mollom_sessionid;
-			$mollom_comment['comment_post_ID'] = $comment['comment_post_ID'];
-			$mollom_comment['author'] = $comment['comment_author'];
-			$mollom_comment['url'] = $comment['comment_author_url'];
-			$mollom_comment['email'] = $comment['comment_author_email'];
-			$mollom_comment['comment'] = $comment['comment_content'];
+			$mollom_comment = _mollom_set_fields($_POST, $comment);
 			mollom_show_captcha($message, $mollom_comment);
 			die();
 		}
@@ -1274,6 +1257,53 @@ function mollom_check_captcha($comment) {
 	return $comment;
 }
 add_action('preprocess_comment','mollom_check_captcha');
+
+/** 
+* _mollom_set_fields
+*  This is a helper function. Get all the applicable comment fields from $_POST and $comment and put them in one array before passing on to show_captcha()
+* @param array $post the $_POST array
+* @param array $comment the $comment array which is passed through the add_action hook
+*/
+function _mollom_set_fields($post = array(), $comment = array()) {
+	$mollom_comment = array('comment_post_ID' => $comment['comment_post_ID'],
+					'author' => $comment['comment_author'],
+					'url' => $comment['comment_author_url'],
+					'email' => $comment['comment_author_email'],
+					'comment' => $comment['comment_content'],
+					'comment_parent' => $comment['comment_parent']
+				);
+	
+	// add possible extra fields to the $mollom_comment array
+	foreach ($post as $key => $value) {
+		if ((!array_key_exists($key, array_keys($mollom_comment))) && ($key != 'submit') && ($key != 'mollom_solution')) {
+			$mollom_comment[$key] = $value;
+		}
+	}
+		
+	return $mollom_comment;
+}
+
+/** 
+* _mollom_get_fields
+* This is a helper function. Generate HTML hidden fields from an array and display them in the CAPTCHA form. All fields except email/url are sanitized against non-western encoding sets.
+* @param array $comment an array with fields where key is the name of the field and value is the value of the field
+*/
+function _mollom_get_fields($comment = array()) {	
+	foreach ($comment as $key => $value) { 
+		// sanitize for non-western encoding sets. Only URL and e-mail adress are exempted. Extra non-wp fields are included.
+		switch ($key) {
+			case 'url':
+			case 'email':
+				break;
+			default:
+				$value = mb_convert_encoding($value, "HTML-ENTITIES","auto");
+				break;
+		}
+	
+		// output to a hidden field
+		?><input type="hidden" name="<?php echo $key; ?>" value="<?php echo $value; ?>" /><?php 
+	}
+}
 
 /** 
 * _mollom_show_captcha
@@ -1291,7 +1321,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 		}
 	}
 	
-	$mollom_audio_session = $result['session_id'];
+	$mollom_comment['mollom_audio_session'] = $result['session_id'];
 	$mollom_audio_captcha = $result['url'];
 
 	$result = mollom('mollom.getImageCaptcha', $data);	
@@ -1301,7 +1331,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 		}
 	}
 
-	$mollom_image_session = $result['session_id'];
+	$mollom_comment['mollom_image_session'] = $result['session_id'];
 	$mollom_image_captcha = $result['url'];
 ?>
 
@@ -1379,14 +1409,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
     </object>
 	<p><small><a href="<?php echo $mollom_audio_captcha; ?>" title="mollom captcha"><?php _e('Download Audio Captcha', MOLLOM_I8N); ?></a></small></p>
 	<p><input type="text" length="15" maxlength="15" name="mollom_solution" /></p>
-	<input type="hidden" value="<?php echo $mollom_audio_session; ?>" name="mollom_audio_session" />
-	<input type="hidden" value="<?php echo $mollom_image_session; ?>" name="mollom_image_session" />
-	<input type="hidden" value="<?php echo $mollom_comment['mollom_sessionid']; ?>" name="mollom_sessionid" />
-	<input type="hidden" value="<?php echo $mollom_comment['comment_post_ID']; ?>" name="comment_post_ID" />
-	<input type="hidden" value="<?php echo $mollom_comment['author']; ?>" name="author" />
-	<input type="hidden" value="<?php echo $mollom_comment['url']; ?>" name="url" />
-	<input type="hidden" value="<?php echo $mollom_comment['email']; ?>" name="email" />
-	<input type="hidden" value="<?php echo mb_convert_encoding($mollom_comment['comment'], "HTML-ENTITIES","auto"); ?>" name="comment" /></p>
+	<?php _mollom_get_fields($mollom_comment); ?>
 	<p><input type="submit" value="<?php _e('Submit', MOLLOM_I8N); ?>" class="submit" /></p>
 </form>
 <p><?php _e('You want Mollom also on your own Wordpress blog? Register with <a href="http://mollom.com">Mollom</a>, download and install <a href="http://wordpress.org/extend/plugins/wp-mollom">the plugin</a>!', MOLLOM_I8N); ?></p>
