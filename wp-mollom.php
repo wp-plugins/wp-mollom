@@ -1155,7 +1155,7 @@ function mollom_check_trackback($comment) {
 	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 		// kill the process here because of spam detection
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('spam', __('Mollom recognized your trackback as spam.'));
+		_mollom_trackback_error('spam', __('Mollom recognized your trackback as spam.', MOLLOM_I8N));
 	}
 	
 	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {

@@ -121,6 +121,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 * 2008/12/xx - 0.7.1
  * fixed: menu's didn't show in the new Wordpress 2.7 administration panels
  * fixed: non-western character sets are now handled properly in the captcha form.
+ * fixed: handling multiple records in the manage module not correctly handled
  * improved: the plugin can now handle extra - non standard- fields added to the comment form
  * added: the plugin is now compatible with the new plugin uninstall features in Wordpress 2.7
 * 2008/11/27 - 0.7.0
