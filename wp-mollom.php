@@ -144,6 +144,7 @@ function mollom_activate() {
 		foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
 			if ($column == 'mollom_had_captcha') {
 				$stat = false;
+				break;
 			}
 		}
 
@@ -465,7 +466,7 @@ function mollom_config() {
 			}
 		}
 
-		// set restore of database (purge all mollom data)
+		// set reserve proxy mode on/off
 		if(isset($_POST['mollomreverseproxy'])) {
 			if ($_POST['mollomreverseproxy'] == on) {
 				update_option('mollom_reverseproxy', true);
@@ -477,9 +478,7 @@ function mollom_config() {
 		// set a commaseperated list of reverse proxy addresses. Needed to determine visitor's valid ip.
 		if (!empty($reverseproxy_addresses)) {
 			update_option('mollom_reverseproxy_addresses', $reverseproxy_addresses);
-		}
-		
-		
+		}		
 	} else {
 		$privatekey = get_option('mollom_private_key');
 		$publickey = get_option('mollom_public_key');
@@ -691,6 +690,7 @@ function mollom_manage() {
 					case 'unapprove':
 					case 'approve':
 						$multipe_failed = false;
+						break;
 					default:
 						$multiple_failed = true;
 				}
@@ -872,7 +872,7 @@ if(!empty($feedback)) {
 <?php
 		endforeach;
 	} else {
-		if (!multiple_failed) { ?>
+		if (!$multiple_failed) { ?>
 	<p><strong><?php _e('Something went wrong while processing the feedback. <a href="#" id="mollom-toggle">Click to display a detailed report</a>.', MOLLOM_I8N); ?></strong></p>
 <?php 	} else { ?>
 	<p><strong><?php _e('All comments were succesfully moderated. <a href="#" id="mollom-toggle">Click to display a detailed report</a>.', MOLLOM_I8N); ?></strong></p>
