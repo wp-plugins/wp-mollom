@@ -21,7 +21,7 @@ define( 'MOLLOM_TABLE', 'mollom' );
 // delete all mollom related options
 delete_option('mollom_private_key');delete_option('mollom_public_key');delete_option('mollom_servers');delete_option('mollom_version');delete_option('mollom_count');delete_option('mollom_ham_count');delete_option('mollom_spam_count');delete_option('mollom_unsure_count');delete_option('mollom_count_moderated');delete_option('mollom_reverseproxy');delete_option('mollom_site_policy');delete_option('mollom_reverseproxy_addresses');delete_option('mollom_dbrestore');
 
-$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-// delete MOLLOM_TABLE$wpdb->query("DROP TABLE $mollom_table");
-
+// delete MOLLOM_TABLE
+$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
+$wpdb->query('DROP TABLE IF EXISTS ' . $mollom_table);
 ?>

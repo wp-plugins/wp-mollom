@@ -197,7 +197,7 @@ function mollom_init() {
 	// load the text domain for localization
 	load_plugin_textdomain(MOLLOM_I8N, false, dirname(plugin_basename(__FILE__)));
 }
-add_action('init', 'mollom_init');
+add_action('init', 'mollom_init');
 /** 
 * mollom_config_page
 * hook the config page in the Wordpress administration module 
@@ -289,13 +289,15 @@ pluginspage="http://www.adobe.com/go/getflashplayer"></embed>
 <h3><?php _e('What is happening over here?', MOLLOM_I8N); ?></h3>
 <p><?php _e('The plugin keeps some statistics of it\'s own. These are stored in the database. These values represent the number of messages that the plugin has succesfully parsed.', MOLLOM_I8N); ?></p>
 <?php mollom_graphs(); ?>
-</div>
 <?php
 	} else {
 ?>
 <div class="error"><p><?php _e('The Mollom plugin is not configured. Please go to <strong><a href="options-general.php?page=mollom-key-config">Settings &gt; Mollom</a></strong> and configure the plugin.', MOLLOM_I8N); ?></p></div>
 <?php
 	}
+?>
+</div>
+<?php
 }
 
 /**
@@ -718,31 +720,25 @@ function mollom_manage() {
 	$show_next = true;
 
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	$count = $wpdb->get_var("SELECT COUNT(mollom_session_ID) FROM $mollom_table");
+	$count = $wpdb->get_var("SELECT COUNT(comments.comment_ID) FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID");
 	
 	if ($count > 0) {
 		if ($_GET['apage']) {
-			$apage = $_GET['apage'];
+			$apage = (($_GET['apage'] == 1) ? 0 : $_GET['apage']);
 		} else {
 			$apage = 0;
 		}
-		
-		if ($apage == 0) {
+	
+		$pagination = _mollom_manage_paginate($apage, $count);
+	
+		$limit = 15;
+		if ($apage < 2)  {
 			$start = $apage;
-			$limit = $apage + 25;
 		} else {
-			$start = ($apage * 25) + 1;
-			$limit = $start + 25;
+			$start = ($apage * 15);
 		}
-		
-		$prevpage = $apage - 1;
-		$nextpage = $apage + 1;
-				
+					
 		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
-
-		if ($limit >= $count) {
-			$show_next = false;
-		}
 	} else {
 		$comments = false;
 	}
@@ -750,17 +746,6 @@ function mollom_manage() {
 ?>
 <script type="text/javascript">
 //<![CDATA[
-function checkAll(form) {
-	for (i = 0, n = form.elements.length; i < n; i++) {
-		if(form.elements[i].type == "checkbox" && !(form.elements[i].getAttribute('onclick', 2))) {
- 	  	if(form.elements[i].checked == true)
- 	    	form.elements[i].checked = false;
- 	    else
-	    	form.elements[i].checked = true;
- 	  }
- 	}
-}
-
 jQuery(document).ready(function() {
 	jQuery('#mollom-messages').hide();
 	/* jQuery('#mollom-statistics').hide(); */
@@ -778,75 +763,20 @@ jQuery(document).ready(function() {
 //]]>
 </script>
 <style type="text/css">
-.mollom-comment-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
+.column-mollom {
+	width: 9%;
 }
 
-.mollom-comment-list a {
-	text-decoration: none;
-}
-
-.mollom-comment-list li {
-	border-bottom: 1px solid #ddd;
-	margin: 0 0 15px 0;
-	padding: 0 0 33px 0;
-	clear: right;
-}
-
-.mollom-comment-head {
-	background: #ddd;
-	font-size: 1.0em;
-	padding: 3px 0;
-}
-
-.mollom-comment-head a {
-	color: #222;
-	text-decoration: none;
-	border-bottom: 1px dotted #000;
-}
-
-.mollom-comment-metadata {
-	font-size: 0.85em;	
-	float: left;
-}
-
-.mollom-action-links {	
+p.mollom-action-links {
+	margin: 3px 0 0 0;
 	font-size: 0.85em;	
 	float: right;
+	bottom: 0;
 }
 
-.mollom-no-comments {
-	font-size: 1.1em;
-	background: #e4f2fd;
-	font-weight: strong;
-	border: 1px solid #ddd;
-}
-
-.mollom-report {
-}
-
-.mollom-report p, .mollom-report a, {
-	margin: 5px;
-	padding: 0;
-}
-
-.mollom-legend-clean {
-	background: #ddd;
-	border: 1px solid #ccc;
-	padding: 3px;
-}
-
-.mollom-legend-captcha {
-	background: #abc;
-	border: 1px solid #bcd;
-	padding: 3px;
-}
-
-.mollom-legend-unapproved {
-	background: #fdf8e4;
-	padding: 3px;
+p.comment-head {
+	margin: 0;
+	color: #888;
 }
 
 </style>
@@ -912,28 +842,36 @@ if(!empty($feedback)) {
 	}
 	mollom_nonce_field($mollom_nonce);
 ?>
-<p><small><em><?php _e("&raquo;&nbsp;Legend: ", MOLLOM_I8N); ?></em><span class="mollom-legend-clean"><?php _e("Clean"); ?></span>&nbsp;<span class="mollom-legend-captcha"><?php _e("Captcha", MOLLOM_I8N); ?></span>
-&nbsp;<span class="mollom-legend-unapproved"><?php _e('Unapproved', MOLLOM_I8N); ?></span></small></p>
 <div class="tablenav">
 <div class="alignleft">
-<input type="checkbox" onclick="checkAll(document.getElementById('comments-form'));" />&nbsp;<?php _e('All', MOLLOM_I8N); ?>
-&nbsp;&nbsp;<input type="submit" name="maction" value="spam" class="button-secondary" />
+<input type="submit" name="maction" value="spam" class="button-secondary" />
 <input type="submit" name="maction" value="profanity" class="button-secondary" />
 <input type="submit" name="maction" value="low quality" class="button-secondary" />
 <input type="submit" name="maction" value="unwanted" class="button-secondary" />
 </div>
 <div class="tablenav-pages">
 <a href="edit-comments.php?page=mollommanage">Start</a>
-<?php
-	if($apage != 0) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $prevpage; ?>"><?php _e('&laquo;Previous', MOLLOM_I8N); ?></a>
-<?php }
-	if($show_next) { ?>
-	<a href="edit-comments.php?page=mollommanage&amp;apage=<?php echo $nextpage; ?>"><?php _e('Next&raquo;', MOLLOM_I8N); ?></a>
-<?php } ?>
+<?php echo $pagination; ?>
 </div>
 </div>
-<ul class="mollom-comment-list">
+<table class="widefat comments fixed" cellspacing="0">
+	<thead>
+		<tr>
+			<th id="cb" class="manage-column column-cb check-column" scope="col"><input type="checkbox" /></th>
+			<th id="author" class="manage-column column-author" scope="col">Author</th>
+			<th id="comment" class="manage-column column-comment" scope="col">Comment</th>
+			<th id="mollom" class="manage-column column-mollom" scope="col">Status</th>
+		</tr>
+	</thead>
+	<tfoot>
+		<tr>
+			<th id="cb" class="manage-column column-cb check-column" scope="col"><input type="checkbox" /></th>
+			<th id="author" class="manage-column column-author" scope="col">Author</th>
+			<th id="comment" class="manage-column column-comment" scope="col">Comment</th>
+			<th id="mollom" class="manage-column column-mollom" scope="col">Status</th>
+		</tr>
+	</tfoot>
+	<tbody>
 	<?php foreach ($comments as $_comment) {
 		global $comment, $post;
 		$comment = get_comment($_comment->comment_ID);
@@ -946,36 +884,128 @@ if(!empty($feedback)) {
 		$unapprove = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unapprove', 'mollom-moderate-comment')); 
 		
 		(strlen($comment->comment_author_url) > 32) ? $comment_url = substr($comment->comment_author_url, 0, 32) . '...' : $comment_url = $comment->comment_author_url;
-		($_comment->mollom_had_captcha == 1) ? $header_style = "#abc" : $header_style = "#ddd";
-		($comment->comment_approved != 1) ? $item_style = 'style="background:#fdf8e4;"' : $item_style = "";
+		
+		$item_style = 'style=""';		
+		($comment->comment_approved != 1) ? $item_style = 'style="background:#fdf8e4;"' : $item_style;
 		
 		$post = get_post($comment->comment_post_ID);
-		$post_link = get_comment_link();
-		
+		$post_link = get_comment_link();		
 	?>
-
-	<li <?php echo $item_style; ?>>
-		<p class="mollom-comment-head" style="background:<?php echo $header_style; ?>;"><input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />&nbsp;&nbsp<strong><?php echo $comment->comment_author; ?></strong> on <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
-		<p><strong><?php echo $comment->comment_title; ?></strong></p>
-		<p><?php echo $comment->comment_content; ?></p>
-		<p class="mollom-comment-metadata">
-		<?php if ($comment_url != "") { ?>
-			<a href="<?php echo $comment_url; ?>"><?php echo $comment_url; ?></a> |
-		<?php } ?>
-		<?php echo $comment->comment_date; ?> |
-		<?php echo $comment->comment_author_IP; ?></p>
-		<p class="mollom-action-links"><a href="<?php echo $spam; ?>"><?php _e('spam', MOLLOM_I8N); ?></a> | <a href="<?php echo $profanity; ?>"><?php _e('profanity', MOLLOM_I8N); ?></a>
-		| <a href="<?php echo $lowquality; ?>"><?php _e('low-quality', MOLLOM_I8N); ?></a> | <a href="<?php echo $unwanted; ?>"><?php _e('unwanted', MOLLOM_I8N); ?></a>
-		| <a href="<?php echo $approve; ?>"><?php _e('approve', MOLLOM_I8N); ?></a> | <a href="<?php echo $unapprove; ?>"><?php _e('unapprove', MOLLOM_I8N); ?></a>
-		</p>
-	</li>
+		<tr <?php echo $item_style; ?>>
+			<th class="check-column" scope="row">
+				<input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />
+			</th>
+			<td class="author column-author">
+				<strong><?php echo $comment->comment_author; ?></strong><br />
+				<?php echo $comment->comment_author_IP; ?><br />
+				<?php if ($comment_url != "") { 
+					$comment_display_url = str_replace('http://www.', '', $comment_url);
+					$comment_display_url = str_replace('http://', '', $comment_url);
+				
+				?>
+					<a href="<?php echo $comment_url; ?>"><?php echo $comment_display_url; ?></a>
+				<?php } ?>
+			</td>
+			<td class="comment column-comment">
+				<p class="comment-head">Submitted on <?php echo get_comment_date('Y/m/d'); ?> at <?php echo get_comment_date('g:ia'); ?> as a response to <a href="<?php echo $post_link; ?>"><?php echo $post->post_title; ?></a></p>
+				<?php echo $comment->comment_content; ?>
+				<p class="mollom-action-links"><a href="<?php echo $spam; ?>"><?php _e('spam', MOLLOM_I8N); ?></a> | <a href="<?php echo $profanity; ?>"><?php _e('profanity', MOLLOM_I8N); ?></a>
+				| <a href="<?php echo $lowquality; ?>"><?php _e('low-quality', MOLLOM_I8N); ?></a> | <a href="<?php echo $unwanted; ?>"><?php _e('unwanted', MOLLOM_I8N); ?></a>
+				| <a href="<?php echo $approve; ?>"><?php _e('approve', MOLLOM_I8N); ?></a> | <a href="<?php echo $unapprove; ?>"><?php _e('unapprove', MOLLOM_I8N); ?></a>
+				</p>
+			</td>
+			<td class="comment column-mollom">
+				<?php if ($_comment->mollom_had_captcha == 1) {	?><img src="<?php echo bloginfo('url') . '/wp-content/plugins/' . dirname(plugin_basename(__FILE__)) . '/images/captcha_icon.gif'; ?>" title="had a captcha" /><?php	} ?>
+				<?php if ($comment->comment_approved != 1) { ?><img src="<?php echo bloginfo('url') . '/wp-content/plugins/' . dirname(plugin_basename(__FILE__)) . '/images/unapproved_icon.gif'; ?>" title="is unapproved" /><?php } ?>
+			</td>
+		</tr>		
 	<?php } ?>
-</ul>
+	</tbody>
+</table>
+
 </form>
 <?php } ?>
 
 </div>
 <?php
+}
+
+function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) {
+	if ($count == 0) {
+		return false;
+	}
+
+	// calculate total amount of pages
+	if ($count < 15) {
+		$total_pages = 1;
+	} else {
+		$total_pages = (int)($count/$per_page);
+	}
+
+	// calculate pagination context
+	$buffer = 1;
+	for ($i = 1; $i <= $total_pages; $i++) {
+		// break if the last page is reached
+		if ($current_page == $total_pages) {
+			$start_offset = $total_pages - 1;
+			break;
+		}
+		// calculate offset depending on which page we are
+		if ((($i % 2) == 0)) {
+			if ($i > $current_page) {
+				$start_offset = $buffer;
+				break;
+			} elseif ($i == $current_page) {
+				$start_offset = $buffer + 1;
+				break;
+			} else {
+				$buffer = $i;
+			}
+		}
+	}
+	
+	// previous/next buttons
+	$prev_page = false;
+	if ($current_page > 1) {
+		$prev_page = $current_page - 1;
+	}
+	
+	$next_page = false;
+	if ($current_page < $total_pages) {
+		$next_page = $current_page + 1;
+	}
+	
+	$pages = '';
+	
+	// start generating links and such
+	if ($prev_page) {
+		$pages = "<a href='edit-comments.php?page=mollommanage&amp;apage=$prev_page'>" . __('&laquo;', MOLLOM_I8N) . "</a>";
+	}
+
+	for ($i = 0; $i < 3; $i++) {
+		$page = $start_offset + $i;
+		if (($page * $per_page) <= $count) {
+			if($page != $current_page) {
+				$pages .= " <a href='edit-comments.php?page=mollommanage&amp;apage=$page' class='page-numbers'>" . $page . "</a>";
+			} else {
+				$pages .= " <span class='page-numbers current'>" . $page . "</span> ";
+			}
+		}
+	}
+	
+	//we're approaching the last page now
+	if ($start_offset < ($total_pages - 2)) {
+		if ($start_offset < ($total_pages - 3)) {
+			$pages .= " ... ";	
+		}
+		$pages .= "<a href='edit-comments.php?page=mollommanage&amp;apage=$total_pages' class='page-numbers'>" . $total_pages . "</a>";
+	} 
+	
+	if ($next_page) {
+		$pages .= " <a href='edit-comments.php?page=mollommanage&amp;apage=$next_page'>" . __('&raquo;', MOLLOM_I8N) . "</a>";
+	}
+
+	return $pages;
 }
 
 /**
