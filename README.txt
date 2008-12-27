@@ -11,9 +11,7 @@ A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress an
 
 == Description ==
 
-<a href="http://www.mollom.com">Mollom</a> protects your website against comment and trackback spam. Mollom differs from other spam deterring services because it takes care of everything. The idea is to relieve you, the administrator, 
-editor, maintainer,... of any moderation or clean up tasks you would normally need to perform in order to keep 
-your blog spamfree.
+<a href="http://www.mollom.com">Mollom</a> protects your website against comment and trackback spam. Mollom differs from other spam deterring services because it takes care of everything. The idea is to relieve you, the administrator, editor, maintainer,... of any moderation or clean up tasks you would normally need to perform in order to keep your blog spamfree.
 
 Mollom combines the power of intelligent text analysis to automatically filter spam with the efficiency of a safe
 CAPTCHA test. If Mollom is unsure if a comment is spam or not, it will present the visitor with a CAPTCHA test.
@@ -41,8 +39,8 @@ Extra options in the configuration panel:
 
 * Policy mode: if enabled, all comments/trackbacks will be blocked if the Mollom services are not available. If 
   you have a high traffic site, this might be useful if you can't respond right away.
-* Restore mode: if enabled, the 'mollom' table which contains mollom related information (session id's) and all
-  mollom options will be deleted from your database.
+* Restore mode (deprecated!): if enabled, the 'mollom' table which contains mollom related information (session id's) and all
+  mollom options will be deleted from your database upon deactivation.
 * Reverse proxy: This is option is important to determine the IP address
   of a visitor if your WP installation runs behind a 'reverse proxy' (Squid,...). If you know the IP address(es) of the 
   proxy your host runs, you should enable this option and enter them as a comma-seperated list. This isn't mandatory 
@@ -52,9 +50,10 @@ Extra options in the configuration panel:
 == Usage ==
 
 Mollom takes care of everything. If a comment is flagged as spam it will be blocked. If the comment is ham, it will
-just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
+ just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
 to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
+
 
 == Moderation ==
 
@@ -72,12 +71,14 @@ There are four basic types of moderation:
 * Low Quality: if the comment isn't really consistent or doesn't make much sense
 * Unwanted: if the comment was i.e. posted by a particular person or bot.
 
+
 Using these will send feedback to Mollom AND delete the comment permanently afterwards. You can also approve or 
 unapprove a comment. Using these functions, you can hide or show a comment from your website. These two options 
 don't send feedback to Mollom nor delete the comment. Use them if you are not sure what to do with a comment.
 
 If a CAPTCHA was shown and completed succesfully, this will also be indicated in the Mollom Manage module through
 differend header colors for the comment. Consult the legend for the meaning of each statuscolor.
+
 
 Moderation is encouraged in case of a false positive. Mollom will learn from the feedback you send through moderation.
 
@@ -100,9 +101,11 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
-* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the  
-  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass 
-  through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. 
+* The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the
+
+  existing data if you used an earlier version of the plugin.
+* If you don't set policy mode, comments will not  pass through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID 
+  will not be assigned to them. 
   This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
 * The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
@@ -119,12 +122,15 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 == Changelog ==
 
 * 2008/12/xx - 0.7.1
- * fixed: menu's didn't show in the new Wordpress 2.7 administration panels
- * fixed: non-western character sets are now handled properly in the captcha form.
+ * fixed: all plugin panels now show in the new WP 2.7 administration interface
+ * fixed: non-western character sets are now handled properly in the captcha form
+ * fixed: handles threaded comments properly now
  * fixed: handling multiple records in the manage module not correctly handled
- * improved: the plugin can now handle extra - non standard- fields added to the comment form
+ * improved: extra - non standard- fields added to the comment form don't get dropped anymore
  * improved: revamped the administration panel
+ * improved: various smaller code improvements
  * added: the plugin is now compatible with the new plugin uninstall features in Wordpress 2.7
+ * added: the 'quality' of 'spaminess' of a comment is now logged and shown as an extra indicator
 * 2008/11/27 - 0.7.0
  
  * fixed: hover over statistics bar graph wouldn't yield numerical data
@@ -147,21 +153,15 @@ WP Mollom comes with handy theme functions which you can use in your theme.
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
  * fixed: broken bulk moderation of comments is now fixed
- * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call
- 
+ * fixed: the IP adress was incorrectly passed to the 'mollom.checkCaptcha' call 
  * fixed: the session_id is now passed correctly to _save_session() after the captcha is checked.
  * improved: more verbose status messages report when using the Mollom Manage module
  * improved: cleaned up some deprecated functions
- * improved: handling of Mollom feedback in _mollom_send_feedback() function
- 
- * added: approve and unapprove options in the Mollom Manage module
- 
- * added: link to the originating post in the Mollom Manage module
- 
- * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module
- 
- * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API
- 
+ * improved: handling of Mollom feedback in _mollom_send_feedback() function 
+ * added: approve and unapprove options in the Mollom Manage module 
+ * added: link to the originating post in the Mollom Manage module 
+ * added: if a comment had to pass a CAPTCHA, it will be indicated in the Mollom Manage module 
+ * added: plugin has it's own HTTP USER AGENT string which will be send with XML RPC calls to the API 
  * added: detailed statistics. You can find these under Plugins > Mollom
 * 2008/07/20 - 0.5.2
  * fixed: passing $comment instead of $_POST to show_captcha() in check_captcha()
