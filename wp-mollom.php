@@ -727,8 +727,8 @@ function mollom_manage() {
 		$pagination = _mollom_manage_paginate($apage, $count);
 	
 		$limit = 15;
-		$start = (($apage < 2) ? 0 : ($apage * 15));
-					
+		$start = (($apage < 2) ? 0 : (($apage - 1) * 15));
+						
 		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
 	} else {
 		$comments = false;
@@ -927,10 +927,14 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 	}
 
 	// calculate total amount of pages
-	if ($count < 15) {
+	if ($count < $per_page) {
 		$total_pages = 1;
 	} else {
 		$total_pages = (int)($count/$per_page);
+	}
+	
+	if (($count%$per_page) > 0) {
+		$total_pages += 1;
 	}
 
 	// calculate pagination context
@@ -977,10 +981,11 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 		$pages = "<a href='edit-comments.php?page=mollommanage&amp;apage=$prev_page'>" . __('&laquo;', MOLLOM_I8N) . "</a>";
 	}
 
-	for ($i = 0; $i < 3; $i++) {
+	$context = 3;
+	$context = (($context < $total_pages) ? $context : ($total_pages + 1));
+	for ($i = 0; $i < $context; $i++) {
 		$page = $start_offset + $i;
 		if (($page * $per_page) <= $count) {
-		var_dump($start_offset . ' ' . $page . ' ' . $current_page);
 			if($page != $current_page) {
 				$pages .= " <a href='edit-comments.php?page=mollommanage&amp;apage=$page' class='page-numbers'>" . $page . "</a>";
 			} else {
@@ -991,7 +996,7 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 	
 	//we're approaching the last page now
 	if ($start_offset < ($total_pages - 2)) {
-		if ($start_offset < ($total_pages - 3)) {
+		if ($start_offset < ($total_pages - $context)) {
 			$pages .= " ... ";	
 		}
 		$pages .= "<a href='edit-comments.php?page=mollommanage&amp;apage=$total_pages' class='page-numbers'>" . $total_pages . "</a>";
