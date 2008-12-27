@@ -928,7 +928,7 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 
 	// calculate total amount of pages
 	if ($count < $per_page) {
-		$total_pages = 1;
+		return false;
 	} else {
 		$total_pages = (int)($count/$per_page);
 	}
