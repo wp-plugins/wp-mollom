@@ -834,17 +834,18 @@ if(!empty($feedback)) {
 	mollom_nonce_field($mollom_nonce);
 ?>
 <div class="tablenav">
-<div class="alignleft">
-<input type="submit" name="maction" value="spam" class="button-secondary" />
-<input type="submit" name="maction" value="profanity" class="button-secondary" />
-<input type="submit" name="maction" value="low quality" class="button-secondary" />
-<input type="submit" name="maction" value="unwanted" class="button-secondary" />
+	<div class="alignleft">
+		<input type="submit" name="maction" value="spam" class="button-secondary" />
+		<input type="submit" name="maction" value="profanity" class="button-secondary" />
+		<input type="submit" name="maction" value="low quality" class="button-secondary" />
+		<input type="submit" name="maction" value="unwanted" class="button-secondary" />
+	</div>
+	<div class="tablenav-pages">
+		<a href="edit-comments.php?page=mollommanage">Start</a>
+		<?php echo $pagination; ?>
+	</div>
 </div>
-<div class="tablenav-pages">
-<a href="edit-comments.php?page=mollommanage">Start</a>
-<?php echo $pagination; ?>
-</div>
-</div>
+<br class="clear" />
 <table class="widefat comments fixed" cellspacing="0">
 	<thead>
 		<tr>
