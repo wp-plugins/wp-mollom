@@ -874,16 +874,13 @@ if(!empty($feedback)) {
 		$unapprove = clean_url(wp_nonce_url('edit-comments.php?page=mollommanage&c=' . $comment->comment_ID . '&maction=unapprove', 'mollom-moderate-comment')); 
 		
 		(strlen($comment->comment_author_url) > 32) ? $comment_url = substr($comment->comment_author_url, 0, 32) . '...' : $comment_url = $comment->comment_author_url;
-		
-		$item_style = 'style=""';		
-		($comment->comment_approved != 1) ? $item_style = 'style="background:#fdf8e4;"' : $item_style;
-		
+			
 		$spaminess = round(($_comment->mollom_spaminess * 100), 2);
 		
 		$post = get_post($comment->comment_post_ID);
 		$post_link = get_comment_link();		
 	?>
-		<tr <?php echo $item_style; ?>>
+		<tr>
 			<th class="check-column" scope="row">
 				<input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" />
 			</th>
