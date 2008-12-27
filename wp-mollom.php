@@ -723,17 +723,12 @@ function mollom_manage() {
 	$count = $wpdb->get_var("SELECT COUNT(comments.comment_ID) FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID");
 	
 	if ($count > 0) {
-		if ($_GET['apage']) {
-			$apage = (($_GET['apage'] == 1) ? 0 : $_GET['apage']);
-		} else {
-			$apage = 0;
-		}
-	
+		$apage = (($_GET['apage']) ? $_GET['apage'] : 1);
 		$pagination = _mollom_manage_paginate($apage, $count);
 	
 		$limit = 15;
-		if ($apage < 2)  {
-			$start = $apage;
+		if ($apage < 2) {
+			$start = 0;
 		} else {
 			$start = ($apage * 15);
 		}
@@ -985,6 +980,7 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 	for ($i = 0; $i < 3; $i++) {
 		$page = $start_offset + $i;
 		if (($page * $per_page) <= $count) {
+		var_dump($start_offset . ' ' . $page . ' ' . $current_page);
 			if($page != $current_page) {
 				$pages .= " <a href='edit-comments.php?page=mollommanage&amp;apage=$page' class='page-numbers'>" . $page . "</a>";
 			} else {
