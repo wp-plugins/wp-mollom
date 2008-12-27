@@ -727,11 +727,7 @@ function mollom_manage() {
 		$pagination = _mollom_manage_paginate($apage, $count);
 	
 		$limit = 15;
-		if ($apage < 2) {
-			$start = 0;
-		} else {
-			$start = ($apage * 15);
-		}
+		$start = (($apage < 2) ? 0 : ($apage * 15));
 					
 		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
 	} else {
@@ -942,7 +938,11 @@ function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) 
 	for ($i = 1; $i <= $total_pages; $i++) {
 		// break if the last page is reached
 		if ($current_page == $total_pages) {
-			$start_offset = $total_pages - 1;
+			if ($total_pages > 1) {
+				$start_offset = $total_pages - 1;
+			} else {
+				$start_offset = 1;
+			}
 			break;
 		}
 		// calculate offset depending on which page we are
