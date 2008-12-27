@@ -56,7 +56,7 @@ define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
 */
 function mollom_activate() {
 	global $wpdb, $wp_db_version;
-
+	
 	// create a new table to store mollom sessions if it doesn't exist
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
 	if($wpdb->get_var("SHOW TABLES LIKE '$mollom_table'") != $mollom_table) {
@@ -64,6 +64,7 @@ function mollom_activate() {
 				`comment_ID` BIGINT( 20 ) UNSIGNED NOT NULL DEFAULT '0',
 				`mollom_session_ID` VARCHAR( 40 ) NULL DEFAULT NULL,
 				`mollom_had_captcha` INT ( 1 ) NOT NULL DEFAULT '0',
+				`mollom_spaminess` FLOAT NOT NULL DEFAULT '0.00',
 				UNIQUE (
 					`comment_ID` ,
 					`mollom_session_ID`
@@ -78,8 +79,7 @@ function mollom_activate() {
 		//Set these variables if they don't exist
 		$version = MOLLOM_VERSION;
 		add_option('mollom_version', $version);
-	}
-	
+	}	
 	
 	// also, let's create these variables if they don't exist
 	if(!get_option('mollom_private_key'))
@@ -139,18 +139,15 @@ function mollom_activate() {
 			}
 		}
 
-		// 2. Add anextra column to the mollom table
-		$stat = true;
-		foreach ($wpdb->get_col("DESC $mollom_table", 0) as $column ) {
-			if ($column == 'mollom_had_captcha') {
-				$stat = false;
-				break;
-			}
-		}
-
-		if ($stat) {
+		// 2. Add extra columns to the mollom table	if it already exists
+		$columns = $wpdb->get_col("DESC $mollom_table", 0);
+		if (!in_array('mollom_had_captcha', $columns)) {
 			$wpdb->query("ALTER TABLE $mollom_table ADD mollom_had_captcha TINYINT (1) NOT NULL DEFAULT 0");
 		}
+		if (!in_array('mollom_spaminess', $columns)) {
+			$wpdb->query("ALTER TABLE $mollom_table ADD mollom_spaminess FLOAT NOT NULL DEFAULT '0.00'");
+		}
+		
 		// end of legacy code
 	}
 }
@@ -728,8 +725,9 @@ function mollom_manage() {
 	
 		$limit = 15;
 		$start = (($apage < 2) ? 0 : (($apage - 1) * 15));
-						
-		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
+								
+		$wpdb->show_errors();
+		$comments = $wpdb->get_results( $wpdb->prepare("SELECT comments.comment_ID, mollom.mollom_had_captcha, mollom.mollom_spaminess FROM $wpdb->comments comments, $mollom_table mollom WHERE mollom.comment_ID = comments.comment_ID ORDER BY comment_date DESC LIMIT %d, %d", $start, $limit) );
 	} else {
 		$comments = false;
 	}
@@ -880,6 +878,8 @@ if(!empty($feedback)) {
 		$item_style = 'style=""';		
 		($comment->comment_approved != 1) ? $item_style = 'style="background:#fdf8e4;"' : $item_style;
 		
+		$spaminess = round(($_comment->mollom_spaminess * 100), 2);
+		
 		$post = get_post($comment->comment_post_ID);
 		$post_link = get_comment_link();		
 	?>
@@ -907,7 +907,8 @@ if(!empty($feedback)) {
 				</p>
 			</td>
 			<td class="comment column-mollom">
-				<?php if ($_comment->mollom_had_captcha == 1) {	?><img src="<?php echo bloginfo('url') . '/wp-content/plugins/' . dirname(plugin_basename(__FILE__)) . '/images/captcha_icon.gif'; ?>" title="had a captcha" /><?php	} ?>
+				<span title="Quality"><?php echo $spaminess; ?>%</span>
+				<?php if ($_comment->mollom_had_captcha == 1) {	?><img src="<?php echo bloginfo('url') . '/wp-content/plugins/' . dirname(plugin_basename(__FILE__)) . '/images/captcha_icon.gif'; ?>" title="had a captcha" /><?php } ?>
 				<?php if ($comment->comment_approved != 1) { ?><img src="<?php echo bloginfo('url') . '/wp-content/plugins/' . dirname(plugin_basename(__FILE__)) . '/images/unapproved_icon.gif'; ?>" title="is unapproved" /><?php } ?>
 			</td>
 		</tr>		
@@ -922,6 +923,13 @@ if(!empty($feedback)) {
 <?php
 }
 
+/**
+* _mollom_manage_paginate
+* Generate pagination for the mollom manage module
+* @param integer $current_page The current page
+* @param integer $count The total number of comments
+* @return integer $per_page The number of comments to be displayed on a page
+*/
 function _mollom_manage_paginate($current_page = 1, $count = 0, $per_page = 15) {
 	if ($count == 0) {
 		return false;
@@ -1101,7 +1109,9 @@ function mollom_check_comment($comment) {
 		$mollom_sessionid = $result['session_id'];
 		
 		if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
-			// let the comment pass			
+			// let the comment pass
+			global $spaminess;
+			$spaminess = $result['quality'];
 			_mollom_set_plugincount("ham");
 			add_action('comment_post', '_mollom_save_session', 1);
 			return $comment;
@@ -1118,6 +1128,7 @@ function mollom_check_comment($comment) {
 			_mollom_set_plugincount("spam");
 			$mollom_comment = _mollom_set_fields($_POST, $comment);
 			$mollom_comment['mollom_sessionid'] = $result['session_id'];
+			$mollom_comment['mollom_spaminess'] = $result['quality'];
 			mollom_show_captcha('', $mollom_comment);
 			die();
 		}
@@ -1179,8 +1190,10 @@ function mollom_check_trackback($comment) {
 		
 	if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 		// let the comment pass
+		global $spaminess;
+		$spaminess = $result['quality'];
 		_mollom_set_plugincount("ham");
-		add_action('comment_post', '_mollom_save_session', 1); // save session!!
+		add_action('comment_post', '_mollom_save_session', 1); // save session!!		
 		return $comment;
 	}
 
@@ -1267,8 +1280,9 @@ function mollom_check_captcha($comment) {
 		
 		// if correct
 		else if ($result) {
-			global $mollom_sessionid;
+			global $mollom_sessionid, $spaminess;
 			$mollom_sessionid = $_POST['mollom_sessionid'];
+			$spaminess = $_POST['mollom_spaminess'];
 			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
 			add_action('comment_post', '_mollom_save_session', 1);
 			add_action('comment_post', '_mollom_save_had_captcha', 1);
@@ -1458,12 +1472,12 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 * @return integer The id of the comment
 */
 function _mollom_save_session($comment_ID) {
-	global $wpdb, $mollom_sessionid;
-	
+	global $wpdb, $mollom_sessionid, $spaminess;
+		
 	// set the mollom session id for later use when moderation is needed
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
-	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID) VALUES(%d, %s)", $comment_ID, $mollom_sessionid) );
-
+	$result = $wpdb->query( $wpdb->prepare("INSERT INTO $mollom_table (comment_ID, mollom_session_ID, mollom_spaminess) VALUES(%d, %s, %s)", $comment_ID, $mollom_sessionid, $spaminess) );
+		
 	return $comment_ID;
 }
 
