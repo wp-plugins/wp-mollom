@@ -121,6 +121,9 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 == Changelog ==
 
+* 2009/01/xx - 0.7.2
+ * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
+ * added: user roles capabilities. You can now exempt roles from a check by Mollom
 * 2008/12/27 - 0.7.1
  * fixed: all plugin panels now show in the new WP 2.7 administration interface
  * fixed: non-western character sets are now handled properly in the captcha form
