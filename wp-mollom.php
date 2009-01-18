@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.7.1
+Version: 0.7.2-dev
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -37,7 +37,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.7.1' );
+define( 'MOLLOM_VERSION', '0.7.1-dev' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
@@ -55,7 +55,7 @@ define( 'MOLLOM_ANALYSIS_UNSURE'  , 3);
 * activate the plugin and install stuff upon first activation
 */
 function mollom_activate() {
-	global $wpdb, $wp_db_version;
+	global $wpdb, $wp_db_version, $wp_roles;
 	
 	// create a new table to store mollom sessions if it doesn't exist
 	$mollom_table = $wpdb->prefix . MOLLOM_TABLE;
@@ -105,6 +105,13 @@ function mollom_activate() {
 		add_option('mollom_reverseproxy', false);
 	if(!get_option('mollom_reverseproxy_addresses'))
 		add_option('mollom_reverseproxy_addresses', NULL);
+	if(!get_option('mollom_roles')) {
+		$mollom_roles = array();
+		foreach ($wp_roles->roles as $role => $data) {		
+			$mollom_roles[] = $role;
+		}
+		add_option('mollom_roles', serialize($mollom_roles));
+	}
 	
 	// if a previous installed version doesn't match with this version, mollom might need an update
 	if (get_option('mollom_version') != MOLLOM_VERSION) {
@@ -405,7 +412,7 @@ if ($css) {
 * Handles the configuration  on your blog(keys, options,...) 
 */
 function mollom_config() {	
-	global $wpdb, $wp_db_version;
+	global $wpdb, $wp_db_version, $wp_roles;
 	
 	$ms = array();
 	$result = '';
@@ -472,12 +479,17 @@ function mollom_config() {
 			}
 		} else {
 				update_option('mollom_reverseproxy', false);
-		}
+		}		
 		
 		// set a commaseperated list of reverse proxy addresses. Needed to determine visitor's valid ip.
 		if (!empty($reverseproxy_addresses)) {
 			update_option('mollom_reverseproxy_addresses', $reverseproxy_addresses);
-		}		
+		}
+
+		// set the user roles that are exempt from the mollom comment check
+		if (isset($_POST['mollomroles'])) {
+			update_option('mollom_roles', serialize($_POST['mollomroles']));
+		}
 	} else {
 		$privatekey = get_option('mollom_private_key');
 		$publickey = get_option('mollom_public_key');
@@ -524,7 +536,13 @@ function mollom_config() {
 				'networkerror' => array('color' =>'d22', 'text' => sprintf(__('Network error: %s', MOLLOM_I8N), $errormsg)),
 				'correctkey' => array('color' => '2d2', 'text' => __('Your keys are valid.', MOLLOM_I8N))
 				);
-	?>	
+	?>
+<style type="text/css">
+#wpcontent select {
+	height: 10em;
+	width: 140px;
+}
+</style>
 <div class="wrap">
 <h2><?php _e('Mollom Configuration', MOLLOM_I8N); ?></h2>
 <div class="narrow">
@@ -566,6 +584,15 @@ function mollom_config() {
 	<p><?php _e('When in doubt, just leave this off.', MOLLOM_I8N); ?></p>
 	<p><?php _e('Enable: ', MOLLOM_I8N); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
 	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
+	<h3><label><?php _e('User roles', MOLLOM_I8N); ?></label></h3>
+	<p><?php _e('Select the roles you want to exclude from the mandatory Mollom check. Default: all roles are exempt.', MOLLOM_I8N); ?></p>
+	<select multiple name="mollomroles[]" size=5>
+	<?php 
+		$mollom_roles = unserialize(get_option('mollom_roles'));
+		foreach ($wp_roles->roles as $role => $data) { ?>
+		<option value="<?php echo $role; ?>"<?php if(in_array($role, $mollom_roles)) { echo " selected"; }?>><?php echo $role; ?></option>
+	<?php } ?>
+	</select>
 	<p class="submit"><input type="submit" value="<?php _e('Update options &raquo;', MOLLOM_I8N); ?>" id="submit" name="submit"/></p>
 </form>
 </div>
@@ -1082,10 +1109,35 @@ function mollom_check_comment($comment) {
 		}
 	}
 	
+	// logica!!
+	/*
+	1. CHECK tegen user roles
+		Indien user role overeenkomt met geselecteerde user role uit een lijst, dan return comment
+	2. CHECK bestaan van session ID
+		Indien niet: ga dan naar mollom.checkContent om de form te checken
+			Indien OK: return comment
+			Indien NIET: block
+			Indien ONZEKER: showForm
+		Indien wel: ga dan naar de checkcaptcha want showform was ingevuld
+	3. Vang problemen met een foute/niet ingevulde sessionID op in de checkCaptcha functie! => ga spammers tegen. Nu kunnen ze gewoon $_POST spoofen 
+	*/
+
+	// If a logged in user exists check if the role is exempt from a Mollom check
+	// non-registered visitors don't have a role so their submissions are always checked
 	$user = wp_get_current_user();
-			
-	// only if the user is registered, there is no active session
-	if (!$_POST['mollom_sessionid'] && !$user->ID) {
+	if ($user->ID) {
+		$mollom_roles = unserialize(get_option('mollom_roles'));
+		$detected = array_intersect($user->roles, $mollom_roles);
+		if (count($detected) > 0) {			
+			return $comment;
+		}
+	}
+		
+	// only if there is no active Mollom session
+	//if (!$_POST['mollom_sessionid']) {
+	if ($_POST['mollom_sessionid']) {
+		mollom_check_captcha($comment);
+	} else {
 		$mollom_comment_data = array('post_body' => $comment['comment_content'],
 									 'author_name' => $comment['comment_author'],
 									 'author_url' => $comment['comment_author_url'],
@@ -1240,66 +1292,76 @@ function _mollom_trackback_error($code = '1', $error_message = '') {
 * @return array The comment array passed by the pre_process hook 
 */
 function mollom_check_captcha($comment) {
+	global $wpdb;	
+	$result = false;
+	
 	// strip redundant slashes
 	$comment['comment_content'] = stripslashes($comment['comment_content']);
-	
-	if ($_POST['mollom_sessionid']) {
-		global $wpdb;
-	
-		$mollom_sessionid = $_POST['mollom_sessionid'];
-		$solution = $_POST['mollom_solution'];
-		$mollom_image_session = $_POST['mollom_image_session'];
-		$mollom_audio_session = $_POST['mollom_audio_session'];
 
-		if ($solution == '') {
-			$message = __('You didn\'t fill out all the required fields, please try again', MOLLOM_I8N);			
-			$mollom_comment = _mollom_set_fields($_POST, $comment);
-			mollom_show_captcha($message, $mollom_comment);
-			die();
-		}
-		
-		// check captcha sessions and solution. If the image gives false, then try the audio session.
-		// Normally the mollom session id, the image session id and the audio session id are the same though no guarantees can be made
-		$data = array('session_id' => $mollom_image_session, 'solution' => $solution);
-		if (!($result = mollom('mollom.checkCaptcha', $data))) {
-			$data = array('session_id' => $mollom_audio_session, 'solution' => $solution);
-			$result = mollom('mollom.checkCaptcha', $data);
-		}
-		
-		// quit if an error was thrown else return to WP Comment flow
-		if (function_exists('is_wp_error') && is_wp_error($result)) {
-			if(get_option('mollom_site_policy')) {
-				wp_die($result, __('Something went wrong...', MOLLOM_I8N));
-			} else {
-				return $comment;
-			}
-		}
-		
-		// if correct
-		else if ($result) {
-			global $mollom_sessionid, $spaminess;
-			$mollom_sessionid = $_POST['mollom_sessionid'];
-			$spaminess = $_POST['mollom_spaminess'];
-			$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
-			add_action('comment_post', '_mollom_save_session', 1);
-			add_action('comment_post', '_mollom_save_had_captcha', 1);
-			_mollom_set_plugincount("unsure");
+	$mollom_session_id = $_POST['mollom_sessionid'];
+	$solution = $_POST['mollom_solution'];
+	$mollom_image_session = $_POST['mollom_image_session'];
+	$mollom_audio_session = $_POST['mollom_audio_session'];
+	
+	if (empty($mollom_session_id)) {
+		$message = __('The Mollom session ID part (a hidden field) is missing from the form you tried to submit.', MOLLOM_I8N);
+		$mollom_comment = _mollom_set_fields($_POST, $comment);
+		mollom_show_captcha($message, $mollom_comment);
+		die();
+	}
+	
+	if (empty($solution)) {
+		$message = __('You didn\'t fill out all the required fields, please try again', MOLLOM_I8N);			
+		$mollom_comment = _mollom_set_fields($_POST, $comment);
+		mollom_show_captcha($message, $mollom_comment);
+		die();
+	}
+	
+	// check captcha sessions and solution. If the image gives false, then try the audio session.
+	// Normally the mollom session id, the image session id and the audio session id are the same though no guarantees can be made
+	$data = array('session_id' => $mollom_image_session, 'solution' => $solution);
+	//var_dump($data);
+	if (!($result = mollom('mollom.checkCaptcha', $data))) {
+		//var_dump($result);
+		$data = array('session_id' => $mollom_audio_session, 'solution' => $solution);
+		$result = mollom('mollom.checkCaptcha', $data);
+	}
+	
+	var_dump($result);
+	die();
+	
+	// quit if an error was thrown else return to WP Comment flow
+	if (function_exists('is_wp_error') && is_wp_error($result)) {
+		if(get_option('mollom_site_policy')) {
+			wp_die($result, __('Something went wrong...', MOLLOM_I8N));
+		} else {
 			return $comment;
 		}
-		
-		// if incorrect
-		else if (!$result) {
-			// let's be forgiving and provide with a new CAPTCHA
-			$message = __('The solution you submitted to the CAPTCHA was incorrect. Please try again...', MOLLOM_I8N);
-			$mollom_comment = _mollom_set_fields($_POST, $comment);
-			mollom_show_captcha($message, $mollom_comment);
-			die();
-		}
+	}
+	
+	// if correct
+	else if ($result) {
+		global $mollom_sessionid, $spaminess;
+		$mollom_sessionid = $_POST['mollom_sessionid'];
+		$spaminess = $_POST['mollom_spaminess'];
+		$comment['comment_content'] = htmlspecialchars_decode($comment['comment_content']);
+		add_action('comment_post', '_mollom_save_session', 1);
+		add_action('comment_post', '_mollom_save_had_captcha', 1);
+		_mollom_set_plugincount("unsure");
+		return $comment;
+	}
+	
+	// if incorrect
+	else if (!$result) {
+		// let's be forgiving and provide with a new CAPTCHA
+		$message = __('The solution you submitted to the CAPTCHA was incorrect. Please try again...', MOLLOM_I8N);
+		$mollom_comment = _mollom_set_fields($_POST, $comment);
+		mollom_show_captcha($message, $mollom_comment);
+		die();
 	}
 
-	return $comment;
 }
-add_action('preprocess_comment','mollom_check_captcha');
+//add_action('preprocess_comment','mollom_check_captcha');
 
 /** 
 * _mollom_set_fields
