@@ -1095,8 +1095,9 @@ function mollom_moderate_comment($comment_ID) {
 function mollom_check_comment($comment) {
 	global $mollom_sessionid;
 	
+	// if it's a trackback, pass it on
 	if($comment['comment_type'] == 'trackback') {
-		return $comment;
+		mollom_check_trackback($comment);
 	}
 	
 	$private_key = get_option('mollom_private_key');
@@ -1133,10 +1134,10 @@ function mollom_check_comment($comment) {
 		}
 	}
 		
-	// only if there is no active Mollom session
-	//if (!$_POST['mollom_sessionid']) {
+	// only check the captcha if there is an active Mollom session
 	if ($_POST['mollom_sessionid']) {
-		mollom_check_captcha($comment);
+		$comment = mollom_check_captcha($comment);
+		return $comment;
 	} else {
 		$mollom_comment_data = array('post_body' => $comment['comment_content'],
 									 'author_name' => $comment['comment_author'],
@@ -1157,7 +1158,42 @@ function mollom_check_comment($comment) {
 		
 		$mollom_sessionid = $result['session_id'];
 		
-		if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
+		switch($result['spam']) {
+			case MOLLOM_ANALYSIS_HAM: {
+				// let the comment pass
+				global $spaminess;
+				$spaminess = $result['quality'];
+				_mollom_set_plugincount("ham");
+				add_action('comment_post', '_mollom_save_session', 1);
+				return $comment;
+			}
+			case MOLLOM_ANALYSIS_UNSURE: {
+				// show a CAPTCHA and and set the count of blocked messages
+				_mollom_set_plugincount("spam");
+				$mollom_comment = _mollom_set_fields($_POST, $comment);
+				$mollom_comment['mollom_sessionid'] = $result['session_id'];
+				$mollom_comment['mollom_spaminess'] = $result['quality'];
+				mollom_show_captcha('', $mollom_comment);
+				die();
+			}
+			case MOLLOM_ANALYSIS_SPAM: {
+				// kill the process here because of spam detection and set the count of blocked messages
+				_mollom_set_plugincount("spam");	
+				wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.', MOLLOM_I8N));
+			}
+			default: {
+				// default behaviour: trigger an error (policy mode)
+				if (function_exists('is_wp_error') && is_wp_error($result)) {
+					if(get_option('mollom_site_policy')) {
+						wp_die($result, __('Something went wrong...', MOLLOM_I8N));
+					} else {
+						return $comment;
+					}
+				}
+			}
+		}
+		
+		/* if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 			// let the comment pass
 			global $spaminess;
 			$spaminess = $result['quality'];
@@ -1188,7 +1224,7 @@ function mollom_check_comment($comment) {
 			} else {
 				return $comment;
 			}
-		}
+		} */
 	}
 	
 	return $comment;
@@ -1198,14 +1234,10 @@ add_action('preprocess_comment', 'mollom_check_comment');
 /** 
 * mollom_check_trackback
 * check if a trackback is ham or spam 
-* @param array $comment the comment passed by the preprocess_comment hook
+* @param array $comment the comment passed by the mollom_check_comment function
 * @return array The comment passed by the preprocess_comment hook
 */
 function mollom_check_trackback($comment) {
-	if($comment['comment_type'] != 'trackback') {
-		return $comment;
-	}
-	
 	global $mollom_sessionid;
 	
 	$private_key = get_option('mollom_private_key');
@@ -1236,8 +1268,35 @@ function mollom_check_trackback($comment) {
 	}
 
 	$mollom_sessionid = $result['session_id'];
-		
-	if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
+	
+	switch($result['spam']) {
+		case MOLLOM_ANALYSIS_HAM: {
+			// let the comment pass
+			global $spaminess;
+			$spaminess = $result['quality'];
+			_mollom_set_plugincount("ham");
+			add_action('comment_post', '_mollom_save_session', 1); // save session!!		
+			return $comment;
+		}
+		case MOLLOM_ANALYSIS_SPAM:
+		case MOLLOM_ANALYSIS_UNSURE: {
+			// kill the process here because of unsure/spam detection 
+			// Trackbacks don't get a CAPTCHA
+			_mollom_set_plugincount("spam");
+			die();
+		}
+		default: {
+			if (function_exists('is_wp_error') && is_wp_error($result)) {
+				if(get_option('mollom_site_policy')) {
+					die();			
+				} else {
+					return $comment;
+				}
+			}
+		}
+	}
+	
+	/* if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
 		// let the comment pass
 		global $spaminess;
 		$spaminess = $result['quality'];
@@ -1249,41 +1308,24 @@ function mollom_check_trackback($comment) {
 	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
 		// kill the process here because of spam detection
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('spam', __('Mollom recognized your trackback as spam.', MOLLOM_I8N));
+		die();
 	}
 	
 	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
 		// kill the process here because of unsure detection (Trackbacks don't get a CAPTCHA)
 		_mollom_set_plugincount("spam");
-		_mollom_trackback_error('unsure', __('Mollom could not recognize your trackback as spam or ham.', MOLLOM_I8N));
+		die();
 	}
 		
 	elseif (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
-			$error_code = $result->get_error_code();
-			_mollom_trackback_error($error_code, $result->get_error_message($error_code));
+			die();			
 		} else {
 			return $comment;
 		}
-	}	
+	}	*/
 }
 add_action('preprocess_comment', 'mollom_check_trackback');
-
-/** 
-* _mollom_trackback_error
-* return an XML answer when mollom fails or denies access to trackback
-* @param string $code The error code to be outputted
-* @param string $error_message The error message to be outputted
-*/
-function _mollom_trackback_error($code = '1', $error_message = '') {
-	header('Content-Type: text/xml; charset=' . get_option('blog_charset'));
-	echo '<?xml version="1.0" encoding="' . get_option('blog_charset') . '" ?>\n';
-	echo "<response>\n";
-	echo "<error>$code</error>\n";
-	echo "<message>$error_message</message>\n";
-	echo "</response>";
-	die();
-}
 
 /**
 * mollom_check_captcha 
@@ -1320,16 +1362,11 @@ function mollom_check_captcha($comment) {
 	// check captcha sessions and solution. If the image gives false, then try the audio session.
 	// Normally the mollom session id, the image session id and the audio session id are the same though no guarantees can be made
 	$data = array('session_id' => $mollom_image_session, 'solution' => $solution);
-	//var_dump($data);
 	if (!($result = mollom('mollom.checkCaptcha', $data))) {
-		//var_dump($result);
 		$data = array('session_id' => $mollom_audio_session, 'solution' => $solution);
 		$result = mollom('mollom.checkCaptcha', $data);
 	}
-	
-	var_dump($result);
-	die();
-	
+			
 	// quit if an error was thrown else return to WP Comment flow
 	if (function_exists('is_wp_error') && is_wp_error($result)) {
 		if(get_option('mollom_site_policy')) {
