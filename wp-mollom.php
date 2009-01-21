@@ -571,19 +571,6 @@ function mollom_config() {
 	<p><input type="text" size="35" maxlength="32" name="mollom-public-key" id="mollom-public-key" value="<?php echo get_option('mollom_public_key'); ?>" /></p>
 	<h3><label><?php _e('Private key', MOLLOM_I8N); ?></label></h3>
 	<p><input type="text" size="35" maxlength="32" name="mollom-private-key" id="mollom-private-key" value="<?php echo get_option('mollom_private_key'); ?>" /></p>
-	<h3><label><?php _e('Policy mode', MOLLOM_I8N); ?></label></h3>
-	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.'); ?></p>
-	<?php 
-		if ( 8645 > $wp_db_version ) { // deprecated option (< WP 2.7) 
-	?>
-	<h3><label><?php _e('Restore', MOLLOM_I8N); ?></label></h3>
-	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.'); ?></p>
-	<?php } ?>
-	<h3><label><?php _e('Reverse proxy', MOLLOM_I8N); ?></label></h3>
-	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.'); ?></p>
-	<p><?php _e('When in doubt, just leave this off.', MOLLOM_I8N); ?></p>
-	<p><?php _e('Enable: ', MOLLOM_I8N); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
-	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
 	<h3><label><?php _e('User roles', MOLLOM_I8N); ?></label></h3>
 	<p><?php _e('Select the roles you want to exclude from the mandatory Mollom check. Default: all roles are exempt.', MOLLOM_I8N); ?></p>
 	<select multiple name="mollomroles[]" size=5>
@@ -593,6 +580,19 @@ function mollom_config() {
 		<option value="<?php echo $role; ?>"<?php if(in_array($role, $mollom_roles)) { echo " selected"; }?>><?php echo $role; ?></option>
 	<?php } ?>
 	</select>
+	<h3><label><?php _e('Policy mode', MOLLOM_I8N); ?></label></h3>
+	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.', MOLLOM_I8N); ?></p>
+	<?php 
+		if ( 8645 > $wp_db_version ) { // deprecated option (< WP 2.7) 
+	?>
+	<h3><label><?php _e('Restore', MOLLOM_I8N); ?></label></h3>
+	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.', MOLLOM_I8N); ?></p>
+	<?php } ?>
+	<h3><label><?php _e('Reverse proxy', MOLLOM_I8N); ?></label></h3>
+	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.'); ?></p>
+	<p><?php _e('When in doubt, just leave this off.', MOLLOM_I8N); ?></p>
+	<p><?php _e('Enable: ', MOLLOM_I8N); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
+	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
 	<p class="submit"><input type="submit" value="<?php _e('Update options &raquo;', MOLLOM_I8N); ?>" id="submit" name="submit"/></p>
 </form>
 </div>
@@ -1110,35 +1110,23 @@ function mollom_check_comment($comment) {
 		}
 	}
 	
-	// logica!!
-	/*
-	1. CHECK tegen user roles
-		Indien user role overeenkomt met geselecteerde user role uit een lijst, dan return comment
-	2. CHECK bestaan van session ID
-		Indien niet: ga dan naar mollom.checkContent om de form te checken
-			Indien OK: return comment
-			Indien NIET: block
-			Indien ONZEKER: showForm
-		Indien wel: ga dan naar de checkcaptcha want showform was ingevuld
-	3. Vang problemen met een foute/niet ingevulde sessionID op in de checkCaptcha functie! => ga spammers tegen. Nu kunnen ze gewoon $_POST spoofen 
-	*/
-
-	// If a logged in user exists check if the role is exempt from a Mollom check
-	// non-registered visitors don't have a role so their submissions are always checked
-	$user = wp_get_current_user();
-	if ($user->ID) {
-		$mollom_roles = unserialize(get_option('mollom_roles'));
-		$detected = array_intersect($user->roles, $mollom_roles);
-		if (count($detected) > 0) {			
-			return $comment;
-		}
-	}
-		
 	// only check the captcha if there is an active Mollom session
+	// skip to the captcha check if session ID was $_POST'ed
 	if ($_POST['mollom_sessionid']) {
 		$comment = mollom_check_captcha($comment);
 		return $comment;
-	} else {
+	} else {		
+		// If a logged in user exists check if the role is exempt from a Mollom check
+		// non-registered visitors don't have a role so their submissions are always checked
+		$user = wp_get_current_user();
+		if ($user->ID) {
+			$mollom_roles = unserialize(get_option('mollom_roles'));
+			$detected = array_intersect($user->roles, $mollom_roles);
+			if (count($detected) > 0) {			
+				return $comment;
+			}
+		}		
+		
 		$mollom_comment_data = array('post_body' => $comment['comment_content'],
 									 'author_name' => $comment['comment_author'],
 									 'author_url' => $comment['comment_author_url'],
@@ -1192,42 +1180,10 @@ function mollom_check_comment($comment) {
 				}
 			}
 		}
-		
-		/* if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
-			// let the comment pass
-			global $spaminess;
-			$spaminess = $result['quality'];
-			_mollom_set_plugincount("ham");
-			add_action('comment_post', '_mollom_save_session', 1);
-			return $comment;
-		}
-
-		elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
-			// kill the process here because of spam detection and set the count of blocked messages
-			_mollom_set_plugincount("spam");	
-			wp_die(__('Your comment has been marked as spam or unwanted by Mollom. It could not be accepted.', MOLLOM_I8N));
-		}
-	
-		elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
-			// show a CAPTCHA and and set the count of blocked messages
-			_mollom_set_plugincount("spam");
-			$mollom_comment = _mollom_set_fields($_POST, $comment);
-			$mollom_comment['mollom_sessionid'] = $result['session_id'];
-			$mollom_comment['mollom_spaminess'] = $result['quality'];
-			mollom_show_captcha('', $mollom_comment);
-			die();
-		}
-		
-		elseif (function_exists('is_wp_error') && is_wp_error($result)) {
-			if(get_option('mollom_site_policy')) {
-				wp_die($result, __('Something went wrong...', MOLLOM_I8N));
-			} else {
-				return $comment;
-			}
-		} */
 	}
-	
-	return $comment;
+
+	// last resort: die to protect the db	
+	wp_die(-6, __('Something went wrong...', MOLLOM_I8N));
 }
 add_action('preprocess_comment', 'mollom_check_comment');
 
@@ -1296,36 +1252,9 @@ function mollom_check_trackback($comment) {
 		}
 	}
 	
-	/* if($result['spam'] == MOLLOM_ANALYSIS_HAM) {
-		// let the comment pass
-		global $spaminess;
-		$spaminess = $result['quality'];
-		_mollom_set_plugincount("ham");
-		add_action('comment_post', '_mollom_save_session', 1); // save session!!		
-		return $comment;
-	}
-
-	elseif ($result['spam'] == MOLLOM_ANALYSIS_SPAM) {
-		// kill the process here because of spam detection
-		_mollom_set_plugincount("spam");
-		die();
-	}
-	
-	elseif($result['spam'] == MOLLOM_ANALYSIS_UNSURE) {
-		// kill the process here because of unsure detection (Trackbacks don't get a CAPTCHA)
-		_mollom_set_plugincount("spam");
-		die();
-	}
-		
-	elseif (function_exists('is_wp_error') && is_wp_error($result)) {
-		if(get_option('mollom_site_policy')) {
-			die();			
-		} else {
-			return $comment;
-		}
-	}	*/
+	// last resort: die to protect the db
+	wp_die(-6, __('Something went wrong...', MOLLOM_I8N));
 }
-add_action('preprocess_comment', 'mollom_check_trackback');
 
 /**
 * mollom_check_captcha 
@@ -1397,8 +1326,9 @@ function mollom_check_captcha($comment) {
 		die();
 	}
 
+	// last resort: die to protect the db
+	wp_die(-6, __('Something went wrong...', MOLLOM_I8N));
 }
-//add_action('preprocess_comment','mollom_check_captcha');
 
 /** 
 * _mollom_set_fields

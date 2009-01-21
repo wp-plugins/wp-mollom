@@ -37,9 +37,13 @@ important: creating great content and interact with your visitors in a proper fa
 
 Extra options in the configuration panel:
 
+* User roles: By default, Mollom will check every comment from any user. Even if he/she is logged into a registered
+  account. Users can be excluded from this check. You assign users to a certain role and exclude that role from checking
+  by selecting the role here. By default, all detected roles are exempted. If you create new roles after the installation
+  of wp-mollom, you will have to select these here as well if you want to exempt them.
 * Policy mode: if enabled, all comments/trackbacks will be blocked if the Mollom services are not available. If 
   you have a high traffic site, this might be useful if you can't respond right away.
-* Restore mode (deprecated!): if enabled, the 'mollom' table which contains mollom related information (session id's) and all
+* Restore mode (deprecated since 2.7!): if enabled, the 'mollom' table which contains mollom related information (session id's) and all
   mollom options will be deleted from your database upon deactivation.
 * Reverse proxy: This is option is important to determine the IP address
   of a visitor if your WP installation runs behind a 'reverse proxy' (Squid,...). If you know the IP address(es) of the 
@@ -53,7 +57,6 @@ Mollom takes care of everything. If a comment is flagged as spam it will be bloc
  just be treated as any other valid comment. Only if Mollom is unsure user action is required: a CAPTCHA will be shown
 to the commenter. If he/she succeeds in solving the CAPTCHA, the comment is saved. In the other case Mollom will just
 reject the comment and regenerate a new CAPTCHA for the commenter to try again.
-
 
 == Moderation ==
 
@@ -79,7 +82,6 @@ don't send feedback to Mollom nor delete the comment. Use them if you are not su
 If a CAPTCHA was shown and completed succesfully, this will also be indicated in the Mollom Manage module through
 differend header colors for the comment. Consult the legend for the meaning of each statuscolor.
 
-
 Moderation is encouraged in case of a false positive. Mollom will learn from the feedback you send through moderation.
 
 == Theme functions ==
@@ -102,13 +104,17 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
 * The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the
-
-  existing data if you used an earlier version of the plugin.
-* If you don't set policy mode, comments will not  pass through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID 
-  will not be assigned to them. 
-  This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
 * The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
+
+== Credits ==
+
+Thank you very much for supporting this project! These people contributed to the plugin
+
+* DonaldZ (http://zuoshen.com) Simplified Chinese translation
+* Pascal Van Hecke (http://pascal.vanhecke.info/) Various bug fixes and testing
+* John Eckman (http://www.openparenthesis.org/) Testing and suggestions
 
 == Screenshots ==
 
@@ -123,7 +129,9 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 * 2009/01/xx - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
+ * improved: the check_trackback_content and check_comment_content are totally rewritten to make them more secure.
  * added: user roles capabilities. You can now exempt roles from a check by Mollom
+ * added: simplified chinese translation
 * 2008/12/27 - 0.7.1
  * fixed: all plugin panels now show in the new WP 2.7 administration interface
  * fixed: non-western character sets are now handled properly in the captcha form
@@ -135,23 +143,16 @@ WP Mollom comes with handy theme functions which you can use in your theme.
  * added: the plugin is now compatible with the new plugin uninstall features in Wordpress 2.7
  * added: the 'quality' of 'spaminess' of a comment is now logged and shown as an extra indicator
 * 2008/11/27 - 0.7.0
- 
  * fixed: hover over statistics bar graph wouldn't yield numerical data
  * added: localization/internationalisation (i8n) support. Now you can translate wp-mollom through POEdit and the likes.
-
 * 2008/11/10 - 0.6.2
  * fixed: wrong feedback qualifiers (spam, profanity, unwanted, low-quality) were transmitted to Mollom upon moderation
 * 2008/09/24 - 0.6.1
  * fixed: division by 0 error on line 317
- 
  * fixed: if 'unsure' but captcha was filled in correctly, HTML attributes in comment content would sometimes be eaten by kses.
- 
  * improved: the mollom function got an overhaul to reflect the september 15 version of the Mollom API documentation
- 
  * changed: mollom statistics are now hooked in edit-comments.php instead of plugins.php
- 
  * added: _mollom_retrieve_server_list() function now handles all getServerList calls
-
 * 2008/08/24 - 0.6.0
  * fixed: html is preserved in a comment when the visitor is confronted with the captcha
  * fixed: handling of session id's in show_captcha() en check_captcha() follows the API flow better.
