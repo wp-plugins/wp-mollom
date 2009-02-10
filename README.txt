@@ -31,6 +31,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 * All comments posted to your blogs should now go through the Mollom service.
 
 == Configuration ==
+
 After you have set the public/private key combination, Mollom will automatically protect your blog. The plugin takes
 care of everything. You don't have to worry about moderation, false positives,... and you can focus on what's really
 important: creating great content and interact with your visitors in a proper fashion.
@@ -112,9 +113,10 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 Thank you very much for supporting this project! These people contributed to the plugin
 
-* DonaldZ (http://zuoshen.com) Simplified Chinese translation
+* DonaldZ (http://zuoshen.com) Simplified Chinese translation and testing
 * Pascal Van Hecke (http://pascal.vanhecke.info/) Various bug fixes and testing
 * John Eckman (http://www.openparenthesis.org/) Testing and suggestions
+* Paul Maunders (http://www.pyrosoft.co.uk/blog) Bug report
 
 == Screenshots ==
 
@@ -129,6 +131,7 @@ Thank you very much for supporting this project! These people contributed to the
 
 * 2009/01/xx - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
+ * fixed: if mb_convert_encoding() is not available, the CAPTCHA would generate a PHP error. Now falls back to htmlentities().
  * improved: the check_trackback_content and check_comment_content are totally rewritten to make them more secure.
  * added: user roles capabilities. You can now exempt roles from a check by Mollom
  * added: simplified chinese translation

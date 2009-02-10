@@ -561,6 +561,9 @@ function mollom_config() {
 
 		mollom_nonce_field($mollom_nonce);
 	?>
+	<?php if (!function_exists('mb_convert_encoding')) { ?>
+	<p class="error"><?php _e('The PHP function <code>mb_convert_encoding()</code> does not exist. Is <a href="http://www.php.net/mb_string" title="Multibyte string">Multibyte string</a> available on your server? You will need this if you want support for non-western character sets (Chinese, Arabic,...). WP Mollom falls back to <code>htmlentities()</code> for now.', MOLLOM_I8N); ?></p>
+	<?php } ?>
 	<p><?php _e('<a href="http://mollom.com" title="Mollom">Mollom</a> is a web service that helps you identify content quality and, more importantly, helps you stop comment and contact form spam. When moderation becomes easier, you can spend more time and energy to interact with your web community.', MOLLOM_I8N); ?></p>	
 	<p><?php _e('You need a public and a private key before you can make use of Mollom. <a href="http://mollom.com/user/register">Register</a> with Mollom to get your keys.', MOLLOM_I8N); ?></p>
 	<?php if(!empty($ms)) {
@@ -577,8 +580,6 @@ function mollom_config() {
 	<?php 
 		$mollom_roles = unserialize(get_option('mollom_roles'));
 		foreach ($wp_roles->roles as $role => $data) { ?>
-		<!-- <option value="<?php echo $role; ?>"<?php if(in_array($role, $mollom_roles)) { echo " selected"; }?>><?php echo $role; ?></option>
-		<input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" /> -->
 		<li><input type="checkbox" name="mollomroles[]" value="<?php echo $role; ?>" <?php if(in_array($role, $mollom_roles)) { echo " checked"; }?> /> <?php echo $role; ?></li>
 
 	<?php } ?>
@@ -592,7 +593,7 @@ function mollom_config() {
 	<p><input type="checkbox" name="mollomrestore" <?php if (get_option('mollom_dbrestore')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('Restore the database (purge all Mollom data) upon deactivation of the plugin.', MOLLOM_I8N); ?></p>
 	<?php } ?>
 	<h3><label><?php _e('Reverse proxy', MOLLOM_I8N); ?></label></h3>
-	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.'); ?></p>
+	<p><?php _e('Check this if your host is running a reverse proxy service (squid,...) and enter the ip address(es) of the reverse proxy your host runs as a commaseparated list.', MOLLOM_I8N); ?></p>
 	<p><?php _e('When in doubt, just leave this off.', MOLLOM_I8N); ?></p>
 	<p><?php _e('Enable: ', MOLLOM_I8N); ?><input type="checkbox" name="mollomreverseproxy" <?php if (get_option('mollom_reverseproxy')) echo 'value = "checked"'; ?> />&nbsp;-&nbsp;
 	<input type="text" size="35" maxlength="255" name="mollom-reverseproxy-addresses" id="mollom-reverseproxy-addresses" value="<?php echo get_option('mollom_reverseproxy_addresses'); ?>" /></p>
@@ -1370,9 +1371,13 @@ function _mollom_get_fields($comment = array()) {
 			case 'url':
 			case 'email':
 				break;
-			default:
-				$value = mb_convert_encoding($value, "HTML-ENTITIES","auto");
+			default: {
+				if (function_exists('mb_convert_encoding'))
+					$value = mb_convert_encoding($value, "HTML-ENTITIES","auto");
+				else
+					$value = htmlentities($value);
 				break;
+			}
 		}
 	
 		// output to a hidden field
@@ -1475,7 +1480,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 	<p class="message"><?php echo $message; ?></p>
 <?php } ?>
 <form action="wp-comments-post.php" method="post">
-	<p><label><strong><?php _e('Image Captcha'); ?></strong></label></p>
+	<p><label><strong><?php _e('Image Captcha', MOLLOM_I8N); ?></strong></label></p>
 	<p><img src="<?php echo $mollom_image_captcha; ?>" alt="mollom captcha" title="mollom captcha" /></p>
 	<p><label><strong><?php _e('Audio Captcha', MOLLOM_I8N); ?></strong></label></p>	
 	<object type="audio/mpeg" data="<?php echo $mollom_audio_captcha; ?>" width="50" height="16">
