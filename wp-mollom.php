@@ -573,13 +573,16 @@ function mollom_config() {
 	<p><input type="text" size="35" maxlength="32" name="mollom-private-key" id="mollom-private-key" value="<?php echo get_option('mollom_private_key'); ?>" /></p>
 	<h3><label><?php _e('User roles', MOLLOM_I8N); ?></label></h3>
 	<p><?php _e('Select the roles you want to exclude from the mandatory Mollom check. Default: all roles are exempt.', MOLLOM_I8N); ?></p>
-	<select multiple name="mollomroles[]" size=5>
+	<ul class="mollom-roles">
 	<?php 
 		$mollom_roles = unserialize(get_option('mollom_roles'));
 		foreach ($wp_roles->roles as $role => $data) { ?>
-		<option value="<?php echo $role; ?>"<?php if(in_array($role, $mollom_roles)) { echo " selected"; }?>><?php echo $role; ?></option>
+		<!-- <option value="<?php echo $role; ?>"<?php if(in_array($role, $mollom_roles)) { echo " selected"; }?>><?php echo $role; ?></option>
+		<input type="checkbox" name="mollom-delete-comments[]" value="<?php echo $comment->comment_ID; ?>" /> -->
+		<li><input type="checkbox" name="mollomroles[]" value="<?php echo $role; ?>" <?php if(in_array($role, $mollom_roles)) { echo " checked"; }?> /> <?php echo $role; ?></li>
+
 	<?php } ?>
-	</select>
+	</ul>
 	<h3><label><?php _e('Policy mode', MOLLOM_I8N); ?></label></h3>
 	<p><input type="checkbox" name="sitepolicy" <?php if (get_option('mollom_site_policy')) echo 'value = "on" checked'; ?> />&nbsp;&nbsp;<?php _e('If Mollom services are down, all comments are blocked by default.', MOLLOM_I8N); ?></p>
 	<?php 
