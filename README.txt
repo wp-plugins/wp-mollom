@@ -5,7 +5,7 @@ Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
 Tested up to: 2.7.0
-Stable tag: 0.7.1
+Stable tag: 0.7.2
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
@@ -20,8 +20,16 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 == Installation ==
 
-* Register your website at http://mollom.com
+Prerequisites
 
+If your blog/your visitors use a non-western character set (i.e. Chinese, Arabic,...) you will need the mb_string extension
+for PHP (http://www.php.net/mb_string) installed on your server. This extension is needed to correctly pass all comment data
+past the CAPTCHA. If you do not have the extension installed, the plugin will fall back to a mode which still allows the use
+of commen western character sets (latin-1, ISO-8599-1).
+
+Installation
+
+* Register your website at http://mollom.com
 * Disable akismet or other spamdeterring plugins you are currently using
 * Drop the wp-mollom/ folder in /wp-content/plugins.
 * Activate the plugin in your dashboard.
@@ -40,7 +48,7 @@ Extra options in the configuration panel:
 
 * User roles: By default, Mollom will check every comment from any user. Even if he/she is logged into a registered
   account. Users can be excluded from this check. You assign users to a certain role and exclude that role from checking
-  by selecting the role here. By default, all detected roles are exempted. If you create new roles after the installation
+  by selecting that role. By default, all roles present on installation are exempted. If you create new roles after the installation
   of wp-mollom, you will have to select these here as well if you want to exempt them.
 * Policy mode: if enabled, all comments/trackbacks will be blocked if the Mollom services are not available. If 
   you have a high traffic site, this might be useful if you can't respond right away.
@@ -111,12 +119,13 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 
 == Credits ==
 
-Thank you very much for supporting this project! These people contributed to the plugin
+Thank you very much for supporting this project! These people contributed to the plugin with translations,
+pointing out bugs and helpful suggestions.
 
-* DonaldZ (http://zuoshen.com) Simplified Chinese translation and testing
-* Pascal Van Hecke (http://pascal.vanhecke.info/) Various bug fixes and testing
-* John Eckman (http://www.openparenthesis.org/) Testing and suggestions
-* Paul Maunders (http://www.pyrosoft.co.uk/blog) Bug report
+* DonaldZ (http://zuoshen.com)
+* Pascal Van Hecke (http://pascal.vanhecke.info/)
+* John Eckman (http://www.openparenthesis.org/)
+* Paul Maunders (http://www.pyrosoft.co.uk/blog)
 
 == Screenshots ==
 
@@ -129,7 +138,7 @@ Thank you very much for supporting this project! These people contributed to the
 
 == Changelog ==
 
-* 2009/01/xx - 0.7.2
+* 2009/02/12 - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
  * fixed: if mb_convert_encoding() is not available, the CAPTCHA would generate a PHP error. Now falls back to htmlentities().
  * improved: the check_trackback_content and check_comment_content are totally rewritten to make them more secure.
