@@ -721,10 +721,10 @@ function mollom_manage() {
 					case 'allsuccess':
 					case 'unapprove':
 					case 'approve':
-						$multipe_failed = false;
+						$multipe_failed = true;
 						break;
 					default:
-						$multiple_failed = true;
+						$multiple_failed = false;
 				}
 				$feedback[$comment_ID] = $result;
 			}

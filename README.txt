@@ -138,6 +138,8 @@ pointing out bugs and helpful suggestions.
 
 == Changelog ==
 
+* 2009/03/xx - 0.7.3
+ * fixed: multiple moderation would incorrectly state 'moderation failed' due to incorrect set boolean.
 * 2009/02/12 - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
  * fixed: if mb_convert_encoding() is not available, the CAPTCHA would generate a PHP error. Now falls back to htmlentities().
