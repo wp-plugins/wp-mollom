@@ -113,7 +113,8 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 * Although this plugin can be used on Wordpress MU, it is not designed nor supported to do so. Wordpress MU will
   be fully supported in future versions.
 * The backend handling and storing of data has been significantly changed since version 0.4.0. The plugin will try to convert the
-  existing data if you used an earlier version of the plugin.* If you don't set policy mode, comments will not  pass through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
+  existing data if you used an earlier version of the plugin.
+* If you don't set policy mode, comments will not  pass through the Mollom filter yet they are treated in the default fashion. This means a Mollom session ID will not be assigned to them. This ID is necessary for moderation. As a result, these comments will not show up in the mollom moderation queue.
 * The plugin works with Wordpress 2.6 but doesn't yet support the new SSL extensions released with Wordpress 2.6 yet.
 * The plugin is compatible with version 2.2.2 (and up) of WP OpenID.
 
@@ -123,6 +124,7 @@ Thank you very much for supporting this project! These people contributed to the
 pointing out bugs and helpful suggestions.
 
 * DonaldZ (http://zuoshen.com)
+* Alexander Langer (http://webseiter.de)
 * Pascal Van Hecke (http://pascal.vanhecke.info/)
 * John Eckman (http://www.openparenthesis.org/)
 * Paul Maunders (http://www.pyrosoft.co.uk/blog)
@@ -140,12 +142,13 @@ pointing out bugs and helpful suggestions.
 
 * 2009/03/xx - 0.7.3
  * fixed: multiple moderation would incorrectly state 'moderation failed' due to incorrect set boolean.
+ * added: german (de_DE) translation
 * 2009/02/12 - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
  * fixed: if mb_convert_encoding() is not available, the CAPTCHA would generate a PHP error. Now falls back to htmlentities().
  * improved: the check_trackback_content and check_comment_content are totally rewritten to make them more secure.
  * added: user roles capabilities. You can now exempt roles from a check by Mollom
- * added: simplified chinese translation
+ * added: simplified chinese (zh_CN) translation
 * 2008/12/27 - 0.7.1
  * fixed: all plugin panels now show in the new WP 2.7 administration interface
  * fixed: non-western character sets are now handled properly in the captcha form
