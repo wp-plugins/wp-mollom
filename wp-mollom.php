@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.7.2
+Version: 0.7.3
 Author URI: http://www.netsensei.nl
 Email: matthias@netsensei.nl
 
@@ -22,6 +22,7 @@ Version history:
 - 27 november 2008: fourth public release
 - 27 december 2008: fifth public release
 - 12 february 2009: sixth public release
+- 16 march 2009: small bugfix release
 */
 
 /*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
@@ -39,7 +40,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.7.2' );
+define( 'MOLLOM_VERSION', '0.7.3' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
