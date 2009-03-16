@@ -4,8 +4,8 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
-Tested up to: 2.7.0
-Stable tag: 0.7.2
+Tested up to: 2.7.1
+Stable tag: 0.7.3
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
 
@@ -125,6 +125,7 @@ pointing out bugs and helpful suggestions.
 
 * DonaldZ (http://zuoshen.com)
 * Alexander Langer (http://webseiter.de)
+* Gianni Diurno (http://www.gidibao.net)
 * Pascal Van Hecke (http://pascal.vanhecke.info/)
 * John Eckman (http://www.openparenthesis.org/)
 * Paul Maunders (http://www.pyrosoft.co.uk/blog)
@@ -140,9 +141,10 @@ pointing out bugs and helpful suggestions.
 
 == Changelog ==
 
-* 2009/03/xx - 0.7.3
+* 2009/03/16 - 0.7.3
  * fixed: multiple moderation would incorrectly state 'moderation failed' due to incorrect set boolean.
  * added: german (de_DE) translation
+ * added: italian (it_IT) translation
 * 2009/02/12 - 0.7.2
  * fixed: closing a gap that allowed bypassing checkContent through spoofing $_POST['mollom_sessionid']
  * fixed: if mb_convert_encoding() is not available, the CAPTCHA would generate a PHP error. Now falls back to htmlentities().
