@@ -144,6 +144,8 @@ pointing out bugs and helpful suggestions.
 
 == Changelog ==
 
+* 2009/xx/xx - 0.7.5
+ * fixed: wrong character encoding when comment is fed to wordpress after a CAPTCHA
 * 2009/04/18 - 0.7.4
  * added: vietnamese (vi) translation
  * added: bulgarian (bg_BG) translation
