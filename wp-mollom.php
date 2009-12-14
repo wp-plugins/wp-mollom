@@ -4,8 +4,8 @@ Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
 Version: 0.7.5-dev
-Author URI: http://www.netsensei.nl
-Email: matthias@netsensei.nl
+Author URI: http://www.colada.be
+Email: matthias@colada.be
 
 Version history:
 - 2 april 2008: creation
@@ -26,7 +26,7 @@ Version history:
 - 18 april 2009: small additions release
 */
 
-/*  Copyright 2008  Matthias Vandermaesen  (email : matthias@netsensei.nl) 
+/*  Copyright 2008  Matthias Vandermaesen  (email : matthias@colada.be) 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or 
@@ -206,6 +206,7 @@ function mollom_init() {
 	load_plugin_textdomain(MOLLOM_I8N, false, dirname(plugin_basename(__FILE__)));
 }
 add_action('init', 'mollom_init');
+
 /** 
 * mollom_config_page
 * hook the config page in the Wordpress administration module 
@@ -1140,7 +1141,7 @@ function mollom_check_comment($comment) {
 									 'author_mail' => $comment['comment_author_email'],
 									 'author_ip' => _mollom_author_ip());
 				
-		$result = mollom('mollom.checkContent', $mollom_comment_data);		
+		$result = mollom('mollom.checkContent', $mollom_comment_data);
 
 		// quit if an error was thrown else return to WP Comment flow
 		if (function_exists('is_wp_error') && is_wp_error($result)) {
@@ -1481,7 +1482,7 @@ function mollom_show_captcha($message = '', $mollom_comment = array()) {
 </head>
 <body id="error-page">
 <h1><?php _e('Mollom CAPTCHA', MOLLOM_I8N); ?></h1>
-<p><?php _e('This blog is protected by <a href="http://mollom.com">Mollom</a> against spam. Mollom is unsure wether your comment was spam or not. Please complete this form by typing the text in the image in the input box. Additionally, you can also listen to a spoken version of the text.', MOLLOM_I8N); ?></p>
+<p><?php _e('This blog is protected by <a href="http://mollom.com">Mollom</a> against spam. Mollom is unsure whether your comment was spam or not. Please complete this form by typing the text in the image in the input box. Additionally, you can also listen to a spoken version of the text.', MOLLOM_I8N); ?></p>
 <?php if ($message != '') { ?>
 	<p class="message"><?php echo $message; ?></p>
 <?php } ?>
