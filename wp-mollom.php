@@ -3,7 +3,7 @@
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
-Version: 0.7.5-dev
+Version: 0.7.5
 Author URI: http://www.colada.be
 Email: matthias@colada.be
 
@@ -24,9 +24,10 @@ Version history:
 - 12 february 2009: sixth public release
 - 16 march 2009: small bugfix release
 - 18 april 2009: small additions release
+- XX XX 2009: small bugfix release
 */
 
-/*  Copyright 2008  Matthias Vandermaesen  (email : matthias@colada.be) 
+/*  Copyright 2008, 2009 Matthias Vandermaesen  (email : matthias@colada.be) 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or 
@@ -566,9 +567,6 @@ function mollom_config() {
 
 		mollom_nonce_field($mollom_nonce);
 	?>
-	<?php if (!function_exists('mb_convert_encoding')) { ?>
-	<p class="error"><?php _e('The PHP function <code>mb_convert_encoding()</code> does not exist. Is <a href="http://www.php.net/mb_string" title="Multibyte string">Multibyte string</a> available on your server? You will need this if you want support for non-western character sets (Chinese, Arabic,...). WP Mollom falls back to <code>htmlentities()</code> for now.', MOLLOM_I8N); ?></p>
-	<?php } ?>
 	<p><?php _e('<a href="http://mollom.com" title="Mollom">Mollom</a> is a web service that helps you identify content quality and, more importantly, helps you stop comment and contact form spam. When moderation becomes easier, you can spend more time and energy to interact with your web community.', MOLLOM_I8N); ?></p>	
 	<p><?php _e('You need a public and a private key before you can make use of Mollom. <a href="http://mollom.com/user/register">Register</a> with Mollom to get your keys.', MOLLOM_I8N); ?></p>
 	<?php if(!empty($ms)) {
@@ -947,6 +945,19 @@ if(!empty($feedback)) {
 	<?php } ?>
 	</tbody>
 </table>
+<div class="tablenav">
+	<div class="alignleft">
+		<input type="submit" name="maction" value="spam" class="button-secondary" />
+		<input type="submit" name="maction" value="profanity" class="button-secondary" />
+		<input type="submit" name="maction" value="low quality" class="button-secondary" />
+		<input type="submit" name="maction" value="unwanted" class="button-secondary" />
+	</div>
+	<div class="tablenav-pages">
+		<a href="edit-comments.php?page=mollommanage">Start</a>
+		<?php echo $pagination; ?>
+	</div>
+</div>
+<br class="clear" />
 
 </form>
 <?php } ?>
@@ -1377,12 +1388,7 @@ function _mollom_get_fields($comment = array()) {
 				break;
 			default: {
 				$charset = get_option('blog_charset');
-				/* if (function_exists('mb_convert_encoding')) {
-					$value = htmlspecialchars(stripslashes($value), ENT_COMPAT, $charset);
-					$value = mb_convert_encoding($value, "UTF-8", $charset);
-				} else { */
-					$value = htmlspecialchars(stripslashes($value), ENT_COMPAT, $charset);
-				/* } */
+				$value = htmlspecialchars(stripslashes($value), ENT_COMPAT, $charset);
 				break;
 			}
 		}

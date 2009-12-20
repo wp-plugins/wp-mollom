@@ -4,7 +4,7 @@ Contributors: Matthias Vandermaesen
 Donate link: http://www.mollom.com
 Tags: comments, spam, mollom, captcha, text analysis, moderation, comment, blocking
 Requires at least: 2.5.0
-Tested up to: 2.7.1
+Tested up to: 2.9.0
 Stable tag: 0.7.4
 
 A plugin that brings the power of Mollom (http://www.mollom.com) to Wordpress and makes your website spamfree!
@@ -18,14 +18,9 @@ CAPTCHA test. If Mollom is unsure if a comment is spam or not, it will present t
 Unless the test was completed succesfully, the comment will never be stored on your blog. Fallback on an automated
 CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
+Developed by <a href="http://www.colada.be">Colada</a>.
+
 == Installation ==
-
-Prerequisites
-
-If your blog/your visitors use a non-western character set (i.e. Chinese, Arabic,...) you will need the mb_string extension
-for PHP (http://www.php.net/mb_string) installed on your server. This extension is needed to correctly pass all comment data
-past the CAPTCHA. If you do not have the extension installed, the plugin will fall back to a mode which still allows the use
-of commen western character sets (latin-1, ISO-8599-1).
 
 Installation
 
@@ -123,6 +118,7 @@ WP Mollom comes with handy theme functions which you can use in your theme.
 Thank you very much for supporting this project! These people contributed to the plugin with translations,
 pointing out bugs and helpful suggestions.
 
+* Dries Buytaert (http://buytaert.net)
 * DonaldZ (http://zuoshen.com)
 * Alexander Langer (http://webseiter.de)
 * Gianni Diurno (http://www.gidibao.net)
@@ -131,7 +127,7 @@ pointing out bugs and helpful suggestions.
 * Paul Maunders (http://www.pyrosoft.co.uk/blog)
 * Petko Stoyanov
 * 9el (http://lenin9l.wordpress.com/)
-* Minh-Quân TRAN
+* Minh-Quân Tran
 
 == Screenshots ==
 
@@ -144,9 +140,12 @@ pointing out bugs and helpful suggestions.
 
 == Changelog ==
 
-* 2009/xx/xx - 0.7.5
+* 2009/XX/XX - 0.7.5
  * fixed: wrong character encoding when comment is fed to wordpress after a CAPTCHA
  * fixed: url was also truncated in href if > 32 chars in the management module
+ * fixed: changed 2 strings against typo's
+ * improved: added pagination on the bottom of the management module
+ * changed: contact details of plugin author
 * 2009/04/18 - 0.7.4
  * added: vietnamese (vi) translation
  * added: bulgarian (bg_BG) translation
