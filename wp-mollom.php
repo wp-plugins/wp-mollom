@@ -24,7 +24,7 @@ Version history:
 - 12 february 2009: sixth public release
 - 16 march 2009: small bugfix release
 - 18 april 2009: small additions release
-- XX XX 2009: small bugfix release
+- 20 december 2009: small bugfix release
 */
 
 /*  Copyright 2008, 2009 Matthias Vandermaesen  (email : matthias@colada.be) 
@@ -42,7 +42,7 @@ Version history:
 */
 
 define( 'MOLLOM_API_VERSION', '1.0' );
-define( 'MOLLOM_VERSION', '0.7.5-dev' );
+define( 'MOLLOM_VERSION', '0.7.5' );
 define( 'MOLLOM_USER_AGENT', '(Incutio XML-RPC) WP Mollom for Wordpress ' . MOLLOM_VERSION );
 define( 'MOLLOM_TABLE', 'mollom' );
 define( 'MOLLOM_I8N', 'wp-mollom' );
