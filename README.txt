@@ -20,8 +20,7 @@ CAPTCHA test allows Mollom to block up to 99,7% of all spam messages.
 
 <strong>Important note for developers</strong>
 
-WP Mollom 2 is currently under development over at <a href="https://github.com/netsensei/WP-mollom">Github</a>. You are welcome
-to clone the repository, test the code and provide feedback.
+WP Mollom 2 is currently under development on <a href="https://github.com/netsensei/WP-mollom">Github</a>. You are welcome to clone the repository, test the code and provide feedback.
 
 Developed by <a href="http://www.colada.be">Colada</a>.
 
