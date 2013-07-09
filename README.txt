@@ -2,7 +2,7 @@
 Contributors: Matthias Vandermaesen
 Requires at least: 2.5.0
 Tested up to: 2.9.0
-Stable tag: 0.7.5
+Stable tag: trunk
 
 Superseded by new Mollom plugin.
 
