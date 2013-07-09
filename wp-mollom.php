@@ -1,5 +1,5 @@
 <?php
-/* Plugin Name: Mollom
+/* Plugin Name: Mollom (old)
 Plugin URI: http://wordpress.org/extend/plugins/wp-mollom/
 Description: Enable <a href="http://www.mollom.com">Mollom</a> on your wordpress blog
 Author: Matthias Vandermaesen
